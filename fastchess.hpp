@@ -64,6 +64,10 @@ public:
     __players[1] = players[1];
     __color = Color_t::CWHITE;
   }
+
+  Color_t color() const { return __color; }
+  Game& game() { return __game; }
+
   bool step()
   {
     size_t i = size_t(__color);

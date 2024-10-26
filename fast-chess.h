@@ -5,8 +5,7 @@
  *      Author: fvj
  */
 
-#ifndef FAST_CHESS_H_
-#define FAST_CHESS_H_
+#pragma once
 
 #ifdef _WIN32
 #include <windows.h>
@@ -383,5 +382,3 @@ void playTextAs(char color, int depth);
 void playTextRandomColor(int depth);
 
 // ===========================
-
-#endif /* FAST_CHESS_H_ */

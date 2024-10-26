@@ -7,11 +7,16 @@
 #include <XPT2046_Touchscreen.h>
 #include <SPIFFS.h>
 #include "fastchess.hpp"
+#include "chess.hpp"
+#include "chess_pieces_bmps.h"
 
 #define TFT_DC 2
 #define TFT_RS 4
 #define TFT_CS 15
 #define TS_CS 22
+
+#define RGB565_IVORY 0xFFF5
+#define RGB565_CHOCOLATE 0x4980
 
 static Adafruit_ILI9341 _tft(TFT_CS, TFT_DC, TFT_RS);
 static XPT2046_Touchscreen tscreen(TS_CS);
@@ -20,61 +25,14 @@ static int ts_dy = 0;
 static int ts_x0 = 0;
 static int ts_y0 = 0;
 
-
-static const uint8_t pawnBitmap[] = {
-  0x00, 0x00, 0x00, /* 0b000000000000000000000000 */
-  0x00, 0x7e, 0x00, /* 0b000000000111111000000000 */
-  0x00, 0xc3, 0x00, /* 0b000000001100001100000000 */
-  0x01, 0x81, 0x80, /* 0b000000011000000110000000 */
-  0x01, 0x00, 0x80, /* 0b000000010000000010000000 */
-  0x01, 0x00, 0x80, /* 0b000000010000000010000000 */
-  0x01, 0x81, 0x80, /* 0b000000011000000110000000 */
-  0x00, 0xc3, 0x00, /* 0b000000001100001100000000 */
-  0x00, 0x7e, 0x00, /* 0b000000000111111000000000 */
-  0x01, 0xff, 0x80, /* 0b000000011111111110000000 */
-  0x00, 0x42, 0x00, /* 0b000000000100001000000000 */
-  0x00, 0x42, 0x00, /* 0b000000000100001000000000 */
-  0x00, 0xc3, 0x00, /* 0b000000001100001100000000 */
-  0x00, 0x81, 0x00, /* 0b000000001000000100000000 */
-  0x01, 0x81, 0x80, /* 0b000000011000000110000000 */
-  0x03, 0x00, 0xc0, /* 0b000000110000000011000000 */
-  0x06, 0x00, 0x60, /* 0b000001100000000001100000 */
-  0x0c, 0x00, 0x30, /* 0b000011000000000000110000 */
-  0x18, 0x00, 0x18, /* 0b000110000000000000011000 */
-  0x10, 0x00, 0x08, /* 0b000100000000000000001000 */
-  0x3f, 0xff, 0xfc, /* 0b001111111111111111111100 */
-  0x20, 0x00, 0x04, /* 0b001000000000000000000100 */
-  0x20, 0x00, 0x04, /* 0b001000000000000000000100 */
-  0x3f, 0xff, 0xfc, /* 0b001111111111111111111100 */
+static const uint8_t* pieces_bmps[][2] = {
+  {chess_pawn_bitmap, chess_pawn_bitmap_filled},
+  {chess_rook_bitmap, chess_rook_bitmap_filled},
+  {chess_knight_bitmap, chess_knight_bitmap_filled},
+  {chess_bishop_bitmap, chess_bishop_bitmap_filled},
+  {chess_qeen_bitmap, chess_qeen_bitmap_filled},
+  {chess_king_bitmap, chess_king_bitmap_filled}
 };
-
-static const uint8_t pawnBitmapF[] = {
-  0x00, 0x00, 0x00, /* 0b000000000000000000000000 */
-  0x00, 0x7e, 0x00, /* 0b000000000111111000000000 */
-  0x00, 0xff, 0x00, /* 0b000000001111111100000000 */
-  0x01, 0xff, 0x80, /* 0b000000011111111110000000 */
-  0x01, 0xff, 0x80, /* 0b000000011111111110000000 */
-  0x01, 0xff, 0x80, /* 0b000000011111111110000000 */
-  0x01, 0xff, 0x80, /* 0b000000011111111110000000 */
-  0x00, 0xff, 0x00, /* 0b000000001111111100000000 */
-  0x00, 0x42, 0x00, /* 0b000000000100001000000000 */
-  0x01, 0xc3, 0x80, /* 0b000000011100001110000000 */
-  0x00, 0x7e, 0x00, /* 0b000000000111111000000000 */
-  0x00, 0x7e, 0x00, /* 0b000000000111111000000000 */
-  0x00, 0xff, 0x00, /* 0b000000001111111100000000 */
-  0x00, 0xff, 0x00, /* 0b000000001111111100000000 */
-  0x01, 0xff, 0x80, /* 0b000000011111111110000000 */
-  0x03, 0xff, 0xc0, /* 0b000000111111111111000000 */
-  0x07, 0xff, 0xe0, /* 0b000001111111111111100000 */
-  0x0f, 0xff, 0xf0, /* 0b000011111111111111110000 */
-  0x1f, 0xff, 0xf8, /* 0b000111111111111111111000 */
-  0x1f, 0xff, 0xf8, /* 0b000111111111111111111000 */
-  0x30, 0x00, 0x0c, /* 0b001100000000000000001100 */
-  0x3f, 0xff, 0xfc, /* 0b001111111111111111111100 */
-  0x3f, 0xff, 0xfc, /* 0b001111111111111111111100 */
-  0x3f, 0xff, 0xfc, /* 0b001111111111111111111100 */
-};
-
 
 class State
 {
@@ -258,7 +216,8 @@ public:
 
   ChessGame():
   __players{nullptr, nullptr},
-  __chessParty(nullptr)
+  __chessParty(nullptr),
+  __gfx_colors{RGB565_IVORY, RGB565_CHOCOLATE}
   {
   }
 
@@ -293,11 +252,41 @@ public:
 
   void step(unsigned current_time) override
   {
+    _tft.fillRect(0, 270, 240, 50, ILI9341_BLACK);
+    auto c = __chessParty->color();
+    if (__chessParty->game().moveListLen > 0) {
+      _tft.setCursor(10, 290);
+      _tft.setTextColor(RGB565_IVORY);
+      Move m = __chessParty->game().moveList[__chessParty->game().moveListLen-1];
+      if (c == Color_t::CBLACK)
+        _tft.print("White: ");
+      else
+        _tft.print("Black:");
+      char mstr[] = {getFile(getFrom(m)), getRank(getFrom(m)), getFile(getTo(m)), getRank(getTo(m)), '\0'};
+      _tft.print(mstr);
+    }
+    _tft.setTextColor(ILI9341_WHITE);
+    _tft.setCursor(10, 310);
+    if (c == Color_t::CWHITE)
+      _tft.print("White: thinking");
+    else
+      _tft.print("Black: thinking");
     bool party_cnt = __chessParty->step();
     drawBoard();
     char board[8][8];
     __chessParty->getBoard(board);
     drawFigures(board);
+
+    _tft.setCursor(10, 310);
+    _tft.fillRect(0, 270, 240, 50, ILI9341_BLACK);
+    if (c == Color_t::CWHITE)
+      _tft.print("White: ");
+    else
+      _tft.print("Black: ");
+    Move m = __chessParty->game().moveList[__chessParty->game().moveListLen-1];
+    char mstr[] = {getFile(getFrom(m)), getRank(getFrom(m)), getFile(getTo(m)), getRank(getTo(m)), '\0'};
+    _tft.print(mstr);
+    delay(5000);
 
     if (!party_cnt) {
       delete __chessParty;
@@ -312,21 +301,21 @@ private:
   {
     _tft.setFont(&Picopixel);
     for (int i=0; i<8; ++i) {
-      _tft.drawChar(22+27*i, 38, char('a'+i), ILI9341_WHITE, ILI9341_BLACK, 1);
-      _tft.drawChar(22+27*i, 265, char('a'+i), ILI9341_WHITE, ILI9341_BLACK, 1);
+      _tft.drawChar(22+27*i, 38, char('a'+i), __gfx_colors[0], __gfx_colors[1], 1);
+      _tft.drawChar(22+27*i, 265, char('a'+i), __gfx_colors[0], __gfx_colors[1], 1);
 
-      _tft.drawChar(5,55+27*i, char('1'+i), ILI9341_WHITE, ILI9341_BLACK, 1);
-      _tft.drawChar(232,55+27*i, char('1'+i), ILI9341_WHITE, ILI9341_BLACK, 1);
+      _tft.drawChar(5,55+27*i, char('1'+i), __gfx_colors[0], __gfx_colors[1], 1);
+      _tft.drawChar(232,55+27*i, char('1'+i), __gfx_colors[0], __gfx_colors[1], 1);
     }
     for (int i=0; i<8; ++i) {
       int flag = i%2?1:0;
       for (int j=0; j<8; ++j){
         flag = 1-flag;
-        _tft.fillRect(12+j*27, 42+i*27, 27, 27, flag?ILI9341_WHITE:ILI9341_BLACK);
+        _tft.fillRect(12+j*27, 42+i*27, 27, 27, flag?__gfx_colors[0]:__gfx_colors[1]);
       }
     }
-    _tft.drawRect(0,30, 240, 240, ILI9341_WHITE);
-    _tft.drawRect(12,43, 216, 216, ILI9341_WHITE);
+    _tft.drawRect(0,30, 240, 240, __gfx_colors[0]);
+    _tft.drawRect(12,43, 216, 216, __gfx_colors[0]);
   }
 
   void drawFigures(char board[8][8])
@@ -338,31 +327,32 @@ private:
         flag = 1-flag;
         if (board[i][j] == '.')
           continue;
-        else if (board[i][j] == 'p') {
-          //uint16_t fg;
-          //uint16_t bg;
+        else {
+          uint16_t fg; uint8_t fill_index;
+          uint8_t figure_index;
           if (flag == 1) {
-            //fg = ILI9341_WHITE, bg = ILI9341_BLACK;
-            _tft.drawBitmap(14+27*j, 44+27*i, pawnBitmapF, 24, 24, ILI9341_BLACK);
+            fg = this->__gfx_colors[1];
+            fill_index = 0;
           } else {
-            //fg = ILI9341_BLACK, bg = ILI9341_WHITE;
-            _tft.drawBitmap(14+27*j, 44+27*i, pawnBitmap, 24, 24, ILI9341_WHITE);
+            fg = this->__gfx_colors[0];
+            fill_index = 1;
           }
-        } else if (board[i][j] == 'P') {
-          //uint16_t fg;
-          //uint16_t bg;
-          if (flag == 1) {
-            //fg = ILI9341_WHITE, bg = ILI9341_BLACK;
-            _tft.drawBitmap(14+27*j, 44+27*i, pawnBitmap, 24, 24, ILI9341_BLACK);
-          } else {
-            //fg = ILI9341_BLACK, bg = ILI9341_WHITE;
-            _tft.drawBitmap(14+27*j, 44+27*i, pawnBitmapF, 24, 24, ILI9341_WHITE);
+          if (board[i][j] >= 'a') {
+            figure_index = board[i][j] - 'a'+'A';
+            fill_index = 1-fill_index;
+          } else
+            figure_index = board[i][j];
+            
+          switch (figure_index) {
+            case 'P': figure_index = uint8_t(chess::Piece_t::P_PAWN); break;
+            case 'R': figure_index = uint8_t(chess::Piece_t::P_ROOK); break;
+            case 'N': figure_index = uint8_t(chess::Piece_t::P_KNIGHT); break;
+            case 'B': figure_index = uint8_t(chess::Piece_t::P_BISHOP); break;
+            case 'Q': figure_index = uint8_t(chess::Piece_t::P_QUEEN); break;
+            case 'K': figure_index = uint8_t(chess::Piece_t::P_KING); break;
+            default: figure_index = 0;
           }
-        } else {
-          if (board[i][j] < 'a')
-            _tft.drawChar(22+27*j, 55+27*i, board[i][j], ILI9341_WHITE, ILI9341_BLACK, 1);
-          else
-            _tft.drawChar(22+27*j, 55+27*i, board[i][j], ILI9341_BLACK, ILI9341_WHITE, 1);
+          _tft.drawBitmap(14+27*j, 44+27*i, pieces_bmps[figure_index][fill_index], 24, 24, fg);
         }
       }
     }
@@ -370,6 +360,7 @@ private:
 
   Player* __players[2];
   ChessParty* __chessParty;
+  uint16_t __gfx_colors[2];
 };
 
 ChessGame _chess_game_state;
