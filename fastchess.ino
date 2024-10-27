@@ -1,14 +1,16 @@
 #include <SPI.h>
 #include "Adafruit_GFX.h"
-#include <Adafruit_ILI9341.h>
+
 #include <Fonts/FreeMono9pt7b.h>
 #include <Fonts/FreeMonoBold9pt7b.h>
 #include <Fonts/Picopixel.h>
-#include <XPT2046_Touchscreen.h>
+
 #include <SPIFFS.h>
 #include "fastchess.hpp"
 #include "chess.hpp"
 #include "chess_pieces_bmps.h"
+
+#include "tc_state.hpp"
 
 #define TFT_DC 2
 #define TFT_RS 4
@@ -18,12 +20,9 @@
 #define RGB565_IVORY 0xFFF5
 #define RGB565_CHOCOLATE 0x4980
 
-static Adafruit_ILI9341 _tft(TFT_CS, TFT_DC, TFT_RS);
-static XPT2046_Touchscreen tscreen(TS_CS);
-static int ts_dx = 0;
-static int ts_dy = 0;
-static int ts_x0 = 0;
-static int ts_y0 = 0;
+Adafruit_ILI9341 _tft(TFT_CS, TFT_DC, TFT_RS);
+XPT2046_Touchscreen tscreen(TS_CS);
+
 
 static const uint8_t* pieces_bmps[][2] = {
   {chess_pawn_bitmap, chess_pawn_bitmap_filled},
@@ -34,44 +33,14 @@ static const uint8_t* pieces_bmps[][2] = {
   {chess_king_bitmap, chess_king_bitmap_filled}
 };
 
-class State
-{
-public:
-  State() = default;
-  virtual void enter() = 0;
-  virtual void step(unsigned) = 0;
-protected:
-  bool getTouch(int &x, int &y)
-  {
-    if (tscreen.touched()) {
-      TS_Point p = tscreen.getPoint();
 
-      x = (p.x - ts_x0) / ts_dx + 5;
-      y = (p.y - ts_y0) / ts_dy + 5;
-
-      return true;
-    }
-    return false;
-  }
-};
-
-enum class State_t
-{
-  S_EMPTY = 0,
-  CALIBRATION,
-  TEST_CALIBRATION,
-  MAIN_MENU,
-  GAME_SETUP,
-  CHESS_GAME
-};
-
-State* _currentState;
+touch_chess::State* _currentState;
 
 
-static State_t _currentStateType = State_t::MAIN_MENU;
-static State_t _previousStateType = State_t::S_EMPTY;
+static touch_chess::State_t _currentStateType = touch_chess::State_t::MAIN_MENU;
+static touch_chess::State_t _previousStateType = touch_chess::State_t::S_EMPTY;
 
-class CalibrateState: public State
+class CalibrateState: public touch_chess::State
 {
 public:
   CalibrateState()
@@ -129,19 +98,19 @@ public:
       int dx = (xf - x0) / 230;
       int dy = (yf - y0) / 310;
 
-      ts_dx = dx;
-      ts_dy = dy;
-      ts_x0 = x0;
-      ts_y0 = y0;
+      touch_chess::ts_dx = dx;
+      touch_chess::ts_dy = dy;
+      touch_chess::ts_x0 = x0;
+      touch_chess::ts_y0 = y0;
 
       File f = SPIFFS.open("/calibration.conf", "w");
-      f.println(ts_x0, DEC);
-      f.println(ts_y0, DEC);
-      f.println(ts_dx, DEC);
-      f.println(ts_dy, DEC);
+      f.println(touch_chess::ts_x0, DEC);
+      f.println(touch_chess::ts_y0, DEC);
+      f.println(touch_chess::ts_dx, DEC);
+      f.println(touch_chess::ts_dy, DEC);
       f.close();
 
-      _currentStateType = State_t::MAIN_MENU;
+      _currentStateType = touch_chess::State_t::MAIN_MENU;
       return;
 
       Serial.print(dx, DEC);
@@ -203,7 +172,7 @@ private:
 
 static CalibrateState _cal_state;
 
-class ChessGame: public State
+class ChessGame: public touch_chess::State
 {
 public:
 
@@ -229,7 +198,7 @@ public:
     if (player == PlayerClass_t::HUMAN)
       __players[size_t(color)] = new Human("");
     else {
-      uint8_t level;
+      uint8_t level=0;
       if (player == PlayerClass_t::FASTCHESS_1)
         level = 1;
       else if (player == PlayerClass_t::FASTCHESS_2)
@@ -292,7 +261,7 @@ public:
     if (!party_cnt) {
       delete __chessParty;
       __chessParty = nullptr;
-      _currentStateType = State_t::MAIN_MENU;
+      _currentStateType = touch_chess::State_t::MAIN_MENU;
     }
   }
 
@@ -305,8 +274,8 @@ private:
       _tft.drawChar(22+27*i, 38, char('a'+i), __gfx_colors[0], __gfx_colors[1], 1);
       _tft.drawChar(22+27*i, 265, char('a'+i), __gfx_colors[0], __gfx_colors[1], 1);
 
-      _tft.drawChar(5,55+27*i, char('1'+i), __gfx_colors[0], __gfx_colors[1], 1);
-      _tft.drawChar(232,55+27*i, char('1'+i), __gfx_colors[0], __gfx_colors[1], 1);
+      _tft.drawChar(5,55+27*i, char('8'+i), __gfx_colors[0], __gfx_colors[1], 1);
+      _tft.drawChar(232,55+27*i, char('8'+i), __gfx_colors[0], __gfx_colors[1], 1);
     }
     for (int i=0; i<8; ++i) {
       int flag = i%2?1:0;
@@ -367,11 +336,11 @@ private:
 ChessGame _chess_game_state;
 
 
-class GameSetup: public State
+class GameSetup: public touch_chess::State
 {
 public:
 
-  GameSetup()
+  GameSetup(): __playersHumanFlag{false, false}
   {
   }
 
@@ -395,7 +364,6 @@ public:
     _tft.setCursor(40, 55);
     _tft.print("fastchess");
 
-
     _tft.setCursor(35, 110);
     _tft.print("Black:");
 
@@ -418,19 +386,43 @@ public:
     if (getTouch(x, y)) {
       // Start game button
       if (y>290 && y<310) {
-        _chess_game_state.setPlayer(Color_t::CWHITE, ChessGame::PlayerClass_t::FASTCHESS_1);
-        _chess_game_state.setPlayer(Color_t::CBLACK, ChessGame::PlayerClass_t::FASTCHESS_1);
-        _currentStateType = State_t::CHESS_GAME;
+        _chess_game_state.setPlayer(
+          Color_t::CWHITE,
+          __playersHumanFlag[size_t(Color_t::CWHITE)]?ChessGame::PlayerClass_t::HUMAN:ChessGame::PlayerClass_t::FASTCHESS_1
+        );
+        _chess_game_state.setPlayer(
+          Color_t::CBLACK,
+          __playersHumanFlag[size_t(Color_t::CBLACK)]?ChessGame::PlayerClass_t::HUMAN:ChessGame::PlayerClass_t::FASTCHESS_1
+        );
+        _currentStateType = touch_chess::State_t::CHESS_GAME;
+      } else if (y>40 && y<65) {
+        _tft.fillRect(50, 41, 150, 23, ILI9341_BLACK);
+        _tft.setCursor(40, 55);
+        __playersHumanFlag[size_t(Color_t::CWHITE)] = !__playersHumanFlag[size_t(Color_t::CWHITE)];
+        if (__playersHumanFlag[size_t(Color_t::CWHITE)])
+          _tft.print("human");
+        else
+          _tft.print("fastchess");
+      } else if (y>120 && y<145) {
+        _tft.fillRect(50, 121, 150, 23, ILI9341_BLACK);
+        _tft.setCursor(40, 135);
+        __playersHumanFlag[size_t(Color_t::CBLACK)] = !__playersHumanFlag[size_t(Color_t::CBLACK)];
+        if (__playersHumanFlag[size_t(Color_t::CBLACK)])
+          _tft.print("human");
+        else
+          _tft.print("fastchess");
       }
     }
   }
+private:
+  bool __playersHumanFlag[2];
 };
 
 
 static GameSetup _game_setup_state;
 
 
-class MainMenu: public State
+class MainMenu: public touch_chess::State
 {
 public:
   MainMenu()
@@ -447,14 +439,14 @@ public:
     if (!SPIFFS.exists("/calibration.conf")) {
       File f = SPIFFS.open("/calibration.conf", "w");
       f.close();
-      _currentStateType = State_t::CALIBRATION;
+      _currentStateType = touch_chess::State_t::CALIBRATION;
       return;
     } else {
       File f = SPIFFS.open("/calibration.conf", "r");
-      ts_x0 = f.parseInt();
-      ts_y0 = f.parseInt();
-      ts_dx = f.parseInt();
-      ts_dy = f.parseInt();
+      touch_chess::ts_x0 = f.parseInt();
+      touch_chess::ts_y0 = f.parseInt();
+      touch_chess::ts_dx = f.parseInt();
+      touch_chess::ts_dy = f.parseInt();
       f.close();
     }
 
@@ -478,11 +470,11 @@ public:
       if (y>100 && y<130) {
         _tft.drawRect(11, 101, 218, 28, ILI9341_BLUE);
         delay(300);
-        _currentStateType = State_t::CALIBRATION;
+        _currentStateType = touch_chess::State_t::CALIBRATION;
       } else if (y>60 && y<90) {
         _tft.drawRect(11, 61, 218, 28, ILI9341_BLUE);
         delay(300);
-        _currentStateType = State_t::GAME_SETUP;
+        _currentStateType = touch_chess::State_t::GAME_SETUP;
       }
     }
   }
@@ -509,13 +501,13 @@ void setup() {
 void loop() {
   if (_currentStateType != _previousStateType) {
     _previousStateType = _currentStateType;
-    if (_currentStateType == State_t::MAIN_MENU) {
+    if (_currentStateType == touch_chess::State_t::MAIN_MENU) {
       _currentState = &_main_menu_state;
-    } else if (_currentStateType == State_t::CALIBRATION) {
+    } else if (_currentStateType == touch_chess::State_t::CALIBRATION) {
       _currentState = &_cal_state;
-    } else if (_currentStateType == State_t::CHESS_GAME) {
+    } else if (_currentStateType == touch_chess::State_t::CHESS_GAME) {
       _currentState = &_chess_game_state;
-    } else if (_currentStateType == State_t::GAME_SETUP) {
+    } else if (_currentStateType == touch_chess::State_t::GAME_SETUP) {
       _currentState = &_game_setup_state;
     }
     _currentState->enter();
