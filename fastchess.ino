@@ -61,6 +61,7 @@ enum class State_t
   CALIBRATION,
   TEST_CALIBRATION,
   MAIN_MENU,
+  GAME_SETUP,
   CHESS_GAME
 };
 
@@ -365,6 +366,70 @@ private:
 
 ChessGame _chess_game_state;
 
+
+class GameSetup: public State
+{
+public:
+
+  GameSetup()
+  {
+  }
+
+  ~GameSetup()
+  {
+  }
+
+  // Interface of the State
+  void enter() override
+  {
+    _tft.fillScreen(ILI9341_BLACK);
+
+    _tft.setCursor(35, 30);
+    _tft.print("White:");
+
+    _tft.drawRect(10, 40, 220, 25, ILI9341_WHITE);
+    _tft.setCursor(15, 55);
+    _tft.print("<");
+    _tft.setCursor(215, 55);
+    _tft.print(">");
+    _tft.setCursor(40, 55);
+    _tft.print("fastchess");
+
+
+    _tft.setCursor(35, 110);
+    _tft.print("Black:");
+
+    _tft.drawRect(10, 120, 220, 25, ILI9341_WHITE);
+    _tft.setCursor(15, 135);
+    _tft.print("<");
+    _tft.setCursor(215, 135);
+    _tft.print(">");
+    _tft.setCursor(40, 135);
+    _tft.print("fastchess");
+
+    _tft.drawRect(10, 285, 220, 30, ILI9341_WHITE);
+    _tft.setCursor(60, 305);
+    _tft.print("Start game");
+  }
+
+  void step(unsigned current_time) override
+  {
+    int x,y;
+    if (getTouch(x, y)) {
+      // Start game button
+      if (y>290 && y<310) {
+        _chess_game_state.setPlayer(Color_t::CWHITE, ChessGame::PlayerClass_t::FASTCHESS_1);
+        _chess_game_state.setPlayer(Color_t::CBLACK, ChessGame::PlayerClass_t::FASTCHESS_1);
+        _currentStateType = State_t::CHESS_GAME;
+      }
+    }
+  }
+};
+
+
+static GameSetup _game_setup_state;
+
+
 class MainMenu: public State
 {
 public:
@@ -417,9 +482,7 @@ public:
       } else if (y>60 && y<90) {
         _tft.drawRect(11, 61, 218, 28, ILI9341_BLUE);
         delay(300);
-        _chess_game_state.setPlayer(Color_t::CWHITE, ChessGame::PlayerClass_t::FASTCHESS_1);
-        _chess_game_state.setPlayer(Color_t::CBLACK, ChessGame::PlayerClass_t::FASTCHESS_1);
-        _currentStateType = State_t::CHESS_GAME;
+        _currentStateType = State_t::GAME_SETUP;
       }
     }
   }
@@ -452,6 +515,8 @@ void loop() {
       _currentState = &_cal_state;
     } else if (_currentStateType == State_t::CHESS_GAME) {
       _currentState = &_chess_game_state;
+    } else if (_currentStateType == State_t::GAME_SETUP) {
+      _currentState = &_game_setup_state;
     }
     _currentState->enter();
   }
