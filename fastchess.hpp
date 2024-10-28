@@ -1,15 +1,12 @@
+#pragma once
+
+#include "chess.hpp"
 #include "fast-chess.h"
 
 enum class Player_t: uint8_t
 {
   AI = 1,
   HUMAN = 0,
-};
-
-enum class Color_t: uint8_t
-{
-  CWHITE = 0,
-  CBLACK = 1
 };
 
 class Player
@@ -54,7 +51,7 @@ private:
   uint8_t __depth;
 };
 
-class ChessParty
+class ChessParty: public chess::Bot
 {
 public:
   ChessParty(Player* players[2])
@@ -62,16 +59,18 @@ public:
     getInitialGame(&__game);
     __players[0] = players[0];
     __players[1] = players[1];
-    __color = Color_t::CWHITE;
+    __color = chess::Color_t::C_WHITE;
   }
 
-  Color_t color() const { return __color; }
+  ~ChessParty() override = default;
+
+  chess::Color_t color() const { return __color; }
   Game& game() { return __game; }
 
   bool step()
   {
     size_t i = size_t(__color);
-    __color = Color_t(1-i);
+    __color = chess::Color_t(1-i);
 
     printBoard(&(__game.position.board));
     if (hasGameEnded(&__game.position)) {
@@ -120,35 +119,59 @@ private:
     } while (true);
   }
 
-  Color_t __color;
+  static chess::Move_t toMove(Move move)
+  {
+    chess::Move_t res;
+
+    res.from.col = chess::Column_t(uint8_t(getFile(getFrom(move))-'a'));
+    res.from.row = chess::Row_t(uint8_t(getRank(getFrom(move))-'1'));
+
+    res.to.col = chess::Column_t(uint8_t(getFile(getTo(move))-'a'));
+    res.to.row = chess::Row_t(uint8_t(getRank(getTo(move))-'1'));
+
+    return res;
+  }
+
+  chess::Color_t __color;
   Game __game;
+  uint8_t __depth = 1;
   Player* __players[2];
+
+  // Bot interface
+public:
+  bool isMoveValid(chess::Move_t move) override
+  {
+    Move *moves = new Move[MAX_BRANCHING_FACTOR];
+    int moveCount = legalMoves(moves, &(__game.position), __game.position.toMove);
+    for (int i=0; i<moveCount; ++i) {
+      char str[4];
+      moveStr(move, str);
+;     Move pm = parseMove(str);
+      if (pm == moves[i]) {
+        delete [] moves;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  chess::Move_t makeBotMove() override
+  {
+    Move m = getAIMove(&__game, __depth);
+    makeMove(&__game, m);
+    return toMove(m);
+  }
+
+  void enterMove(chess::Move_t move) override
+  {
+    char str[4];
+    moveStr(move, str);
+    Move m = parseMove(str);
+    makeMove(&__game, m);
+  }
+
+  bool partyEnded() override
+  {
+    return hasGameEnded(&__game.position);
+  }
 };
-
-/*
-static ChessParty* _party = nullptr;
-
-void setup()
-{
-  disableCore0WDT();
-  disableCore1WDT();
-  Serial.begin(115200);
-  Serial.setTimeout(2000);
-}
-
-void loop()
-{
-  if (_party == nullptr) {
-    Player *k = new AIPlayer("Kolya", 1);
-    Player *p = new AIPlayer("Papa", 1);
-    Player* players[2];
-    players[size_t(Color_t::CWHITE)] = k;
-    players[size_t(Color_t::CBLACK)] = p;
-    _party = new ChessParty(players);
-  }
-  bool party_cnt = _party->step();
-  if (!party_cnt) {
-    delete _party;
-  }
-}
-*/

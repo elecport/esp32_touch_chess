@@ -191,7 +191,7 @@ public:
   {
   }
 
-  void setPlayer(Color_t color, PlayerClass_t player)
+  void setPlayer(chess::Color_t color, PlayerClass_t player)
   {
     if (__players[size_t(color)] != nullptr)
       delete __players[size_t(color)];
@@ -216,53 +216,47 @@ public:
     if (__chessParty != nullptr)
       delete __chessParty;
     __chessParty = new ChessParty(__players);
+    __color = chess::Color_t::C_WHITE;
 
     drawBoard();
   }
 
   void step(unsigned current_time) override
   {
+    chess::Move_t mov = __chessParty->makeBotMove();
+    // Print last move
     _tft.fillRect(0, 270, 240, 50, ILI9341_BLACK);
-    auto c = __chessParty->color();
-    if (__chessParty->game().moveListLen > 0) {
-      _tft.setCursor(10, 290);
-      _tft.setTextColor(RGB565_IVORY);
-      Move m = __chessParty->game().moveList[__chessParty->game().moveListLen-1];
-      if (c == Color_t::CBLACK)
-        _tft.print("White: ");
-      else
-        _tft.print("Black:");
-      char mstr[] = {getFile(getFrom(m)), getRank(getFrom(m)), getFile(getTo(m)), getRank(getTo(m)), '\0'};
-      _tft.print(mstr);
-    }
-    _tft.setTextColor(ILI9341_WHITE);
-    _tft.setCursor(10, 310);
-    if (c == Color_t::CWHITE)
-      _tft.print("White: thinking");
+    _tft.setCursor(10, 290);
+    _tft.setTextColor(RGB565_IVORY);
+    if (__color == chess::Color_t::C_WHITE)
+      _tft.print("White: ");
     else
-      _tft.print("Black: thinking");
-    bool party_cnt = __chessParty->step();
+      _tft.print("Black: ");
+    char mstr[5];
+    chess::Bot::moveStr(mov, mstr);
+    mstr[4] = '\0';
+    _tft.print(mstr);
+    //printf("%x %x %x %x %s\n", int(mstr[0]), int(mstr[1]), int(mstr[2]), int(mstr[3]), mstr);
+    bool party_cnt = __chessParty->partyEnded();
     drawBoard();
     char board[8][8];
     __chessParty->getBoard(board);
     drawFigures(board);
 
-    _tft.setCursor(10, 310);
-    _tft.fillRect(0, 270, 240, 50, ILI9341_BLACK);
-    if (c == Color_t::CWHITE)
-      _tft.print("White: ");
-    else
-      _tft.print("Black: ");
-    Move m = __chessParty->game().moveList[__chessParty->game().moveListLen-1];
-    char mstr[] = {getFile(getFrom(m)), getRank(getFrom(m)), getFile(getTo(m)), getRank(getTo(m)), '\0'};
-    _tft.print(mstr);
-    delay(5000);
-
-    if (!party_cnt) {
+    if (party_cnt) {
       delete __chessParty;
       __chessParty = nullptr;
       _currentStateType = touch_chess::State_t::MAIN_MENU;
+      return;
     }
+
+    __color = chess::Color_t(1-uint8_t(__color));
+    _tft.setCursor(10, 310);
+    _tft.setTextColor(ILI9341_WHITE);
+    if (__color == chess::Color_t::C_WHITE)
+      _tft.print("White: thinking");
+    else
+      _tft.print("Black: thinking");
   }
 
 private:
@@ -330,6 +324,8 @@ private:
 
   Player* __players[2];
   ChessParty* __chessParty;
+  chess::Color_t __color;
+  chess::Move_t __lastMove;
   uint16_t __gfx_colors[2];
 };
 
@@ -387,27 +383,27 @@ public:
       // Start game button
       if (y>290 && y<310) {
         _chess_game_state.setPlayer(
-          Color_t::CWHITE,
-          __playersHumanFlag[size_t(Color_t::CWHITE)]?ChessGame::PlayerClass_t::HUMAN:ChessGame::PlayerClass_t::FASTCHESS_1
+          chess::Color_t::C_WHITE,
+          __playersHumanFlag[size_t(chess::Color_t::C_WHITE)]?ChessGame::PlayerClass_t::HUMAN:ChessGame::PlayerClass_t::FASTCHESS_1
         );
         _chess_game_state.setPlayer(
-          Color_t::CBLACK,
-          __playersHumanFlag[size_t(Color_t::CBLACK)]?ChessGame::PlayerClass_t::HUMAN:ChessGame::PlayerClass_t::FASTCHESS_1
+          chess::Color_t::C_BLACK,
+          __playersHumanFlag[size_t(chess::Color_t::C_BLACK)]?ChessGame::PlayerClass_t::HUMAN:ChessGame::PlayerClass_t::FASTCHESS_1
         );
         _currentStateType = touch_chess::State_t::CHESS_GAME;
       } else if (y>40 && y<65) {
         _tft.fillRect(50, 41, 150, 23, ILI9341_BLACK);
         _tft.setCursor(40, 55);
-        __playersHumanFlag[size_t(Color_t::CWHITE)] = !__playersHumanFlag[size_t(Color_t::CWHITE)];
-        if (__playersHumanFlag[size_t(Color_t::CWHITE)])
+        __playersHumanFlag[size_t(chess::Color_t::C_WHITE)] = !__playersHumanFlag[size_t(chess::Color_t::C_WHITE)];
+        if (__playersHumanFlag[size_t(chess::Color_t::C_WHITE)])
           _tft.print("human");
         else
           _tft.print("fastchess");
       } else if (y>120 && y<145) {
         _tft.fillRect(50, 121, 150, 23, ILI9341_BLACK);
         _tft.setCursor(40, 135);
-        __playersHumanFlag[size_t(Color_t::CBLACK)] = !__playersHumanFlag[size_t(Color_t::CBLACK)];
-        if (__playersHumanFlag[size_t(Color_t::CBLACK)])
+        __playersHumanFlag[size_t(chess::Color_t::C_BLACK)] = !__playersHumanFlag[size_t(chess::Color_t::C_BLACK)];
+        if (__playersHumanFlag[size_t(chess::Color_t::C_BLACK)])
           _tft.print("human");
         else
           _tft.print("fastchess");
