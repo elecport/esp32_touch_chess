@@ -14,18 +14,6 @@ extern int ts_dy;
 extern int ts_x0;
 extern int ts_y0;
 
-class State
-{
-public:
-  State() = default;
-  virtual ~State() = default;
-
-  virtual void enter() = 0;
-  virtual void step(unsigned) = 0;
-protected:
-  bool getTouch(int &x, int &y);
-};
-
 enum class State_t
 {
   S_EMPTY = 0,
@@ -34,6 +22,18 @@ enum class State_t
   MAIN_MENU,
   GAME_SETUP,
   CHESS_GAME
+};
+
+class State
+{
+public:
+  State() = default;
+  virtual ~State() = default;
+
+  virtual void enter() = 0;
+  virtual State_t step(unsigned) = 0;
+protected:
+  bool getTouch(int16_t &x, int16_t &y);
 };
 
 } // namespace touch_chess

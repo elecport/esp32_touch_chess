@@ -11,10 +11,11 @@
 #include "chess_pieces_bmps.h"
 
 #include "tc_state.hpp"
+#include "main_menu.hpp"
 
 #define TFT_DC 2
 #define TFT_RS 4
-#define TFT_CS 15
+#define TFT_CS 5
 #define TS_CS 22
 
 #define RGB565_IVORY 0xFFF5
@@ -35,8 +36,6 @@ static const uint8_t* pieces_bmps[][2] = {
 
 
 touch_chess::State* _currentState;
-
-
 static touch_chess::State_t _currentStateType = touch_chess::State_t::MAIN_MENU;
 static touch_chess::State_t _previousStateType = touch_chess::State_t::S_EMPTY;
 
@@ -65,7 +64,7 @@ public:
     _tft.fillScreen(ILI9341_BLACK);
   }
 
-  void step(unsigned current_time) override
+  touch_chess::State_t step(unsigned current_time) override
   {
     delay(100);
     if (m_step > 3) {
@@ -110,8 +109,7 @@ public:
       f.println(touch_chess::ts_dy, DEC);
       f.close();
 
-      _currentStateType = touch_chess::State_t::MAIN_MENU;
-      return;
+      return touch_chess::State_t::MAIN_MENU;;
 
       Serial.print(dx, DEC);
       Serial.print(":");
@@ -133,7 +131,7 @@ public:
         _tft.print(":");
         _tft.println(y, DEC);
       }
-      return;
+      return touch_chess::State_t::CALIBRATION;
     }
     if (m_waitTouch == false) {
       m_waitTouch = true;
@@ -159,6 +157,7 @@ public:
         m_step++;
       }
     }
+    return touch_chess::State_t::CALIBRATION;
   }
 
 private:
@@ -221,9 +220,14 @@ public:
     drawBoard();
   }
 
-  void step(unsigned current_time) override
+  touch_chess::State_t step(unsigned current_time) override
   {
-    chess::Move_t mov = __chessParty->makeBotMove();
+    chess::Move_t mov;
+    if (__players[size_t(__color)]->getType() == Player_t::HUMAN) {
+      mov = __getMove();
+    } else {
+      mov = __chessParty->makeBotMove();
+    }
     // Print last move
     _tft.fillRect(0, 270, 240, 50, ILI9341_BLACK);
     _tft.setCursor(10, 290);
@@ -239,15 +243,12 @@ public:
     //printf("%x %x %x %x %s\n", int(mstr[0]), int(mstr[1]), int(mstr[2]), int(mstr[3]), mstr);
     bool party_cnt = __chessParty->partyEnded();
     drawBoard();
-    char board[8][8];
-    __chessParty->getBoard(board);
-    drawFigures(board);
+    drawFigures();
 
     if (party_cnt) {
       delete __chessParty;
       __chessParty = nullptr;
-      _currentStateType = touch_chess::State_t::MAIN_MENU;
-      return;
+      return touch_chess::State_t::MAIN_MENU;
     }
 
     __color = chess::Color_t(1-uint8_t(__color));
@@ -257,6 +258,8 @@ public:
       _tft.print("White: thinking");
     else
       _tft.print("Black: thinking");
+
+    return touch_chess::State_t::CHESS_GAME;
   }
 
 private:
@@ -282,8 +285,11 @@ private:
     _tft.drawRect(12,43, 216, 216, __gfx_colors[0]);
   }
 
-  void drawFigures(char board[8][8])
+  void drawFigures()
   {
+    char board[8][8];
+    __chessParty->getBoard(board);
+
     _tft.setFont(&FreeMonoBold9pt7b);
     for (uint8_t i=0; i<8; ++i) {
       int flag = i%2;
@@ -322,6 +328,26 @@ private:
     }
   }
 
+  chess::Move_t __getMove()
+  {
+    // Get first cell
+    while (true) {
+      TS_Point p;
+      if (getTouch(p.x, p.y)) {
+        _tft.fillScreen(ILI9341_BLACK);
+        drawBoard();
+        drawFigures();
+        int file = (p.x - 12) / 27;
+        int rank = 7 - (p.y - 42 - 13) / 27;
+        printf("%d %d (%d %d)\n", p.x, p.y, file, rank);
+        if (file >= 0 && file < 8 && rank >= 0 && file < 8) {
+          _tft.drawRect(12+27*file+1, 42+(7-rank)*27+1, 25, 25, ILI9341_BLUE);
+        }
+      }
+      delay(100);
+    }
+  }
+
   Player* __players[2];
   ChessParty* __chessParty;
   chess::Color_t __color;
@@ -340,9 +366,7 @@ public:
   {
   }
 
-  ~GameSetup()
-  {
-  }
+  ~GameSetup() = default;
 
   // Interface of the State
   void enter() override
@@ -376,9 +400,9 @@ public:
     _tft.print("Start game");
   }
 
-  void step(unsigned current_time) override
+  touch_chess::State_t step(unsigned current_time) override
   {
-    int x,y;
+    int16_t x,y;
     if (getTouch(x, y)) {
       // Start game button
       if (y>290 && y<310) {
@@ -390,7 +414,7 @@ public:
           chess::Color_t::C_BLACK,
           __playersHumanFlag[size_t(chess::Color_t::C_BLACK)]?ChessGame::PlayerClass_t::HUMAN:ChessGame::PlayerClass_t::FASTCHESS_1
         );
-        _currentStateType = touch_chess::State_t::CHESS_GAME;
+        return touch_chess::State_t::CHESS_GAME;
       } else if (y>40 && y<65) {
         _tft.fillRect(50, 41, 150, 23, ILI9341_BLACK);
         _tft.setCursor(40, 55);
@@ -409,79 +433,19 @@ public:
           _tft.print("fastchess");
       }
     }
+    return touch_chess::State_t::GAME_SETUP;
   }
 private:
   bool __playersHumanFlag[2];
 };
 
-
 static GameSetup _game_setup_state;
-
-
-class MainMenu: public touch_chess::State
-{
-public:
-  MainMenu()
-  {
-  }
-
-  ~MainMenu()
-  {
-  }
-
-  // Interface of the State
-  void enter() override
-  {
-    if (!SPIFFS.exists("/calibration.conf")) {
-      File f = SPIFFS.open("/calibration.conf", "w");
-      f.close();
-      _currentStateType = touch_chess::State_t::CALIBRATION;
-      return;
-    } else {
-      File f = SPIFFS.open("/calibration.conf", "r");
-      touch_chess::ts_x0 = f.parseInt();
-      touch_chess::ts_y0 = f.parseInt();
-      touch_chess::ts_dx = f.parseInt();
-      touch_chess::ts_dy = f.parseInt();
-      f.close();
-    }
-
-    _tft.fillScreen(ILI9341_BLACK);
-    _tft.setTextSize(1);
-    _tft.setFont(&FreeMonoBold9pt7b);
-
-    _tft.drawRect(10, 60, 220, 30, ILI9341_WHITE);
-    _tft.setCursor(20, 75);
-    _tft.print("   PLAY CHESS");
-
-    _tft.drawRect(10, 100, 220, 30, ILI9341_WHITE);
-    _tft.setCursor(20, 115);
-    _tft.print("  CALIBRATION");
-  }
-
-  void step(unsigned current_time) override
-  {
-    int x,y;
-    if (getTouch(x, y)) {
-      if (y>100 && y<130) {
-        _tft.drawRect(11, 101, 218, 28, ILI9341_BLUE);
-        delay(300);
-        _currentStateType = touch_chess::State_t::CALIBRATION;
-      } else if (y>60 && y<90) {
-        _tft.drawRect(11, 61, 218, 28, ILI9341_BLUE);
-        delay(300);
-        _currentStateType = touch_chess::State_t::GAME_SETUP;
-      }
-    }
-  }
-};
-
-static MainMenu _main_menu_state;
+static touch_chess::MainMenu _main_menu_state;
 
 
 void setup() {
-  disableCore0WDT();
-  disableCore1WDT();
+  //disableCore0WDT();
+  //disableCore1WDT();
 
   _tft.begin();
   _tft.fillScreen(ILI9341_BLACK);
@@ -508,5 +472,5 @@ void loop() {
     }
     _currentState->enter();
   }
-  _currentState->step(millis());
+  _currentStateType = _currentState->step(millis());
 }

@@ -8,7 +8,7 @@ int ts_dy = 0;
 int ts_x0 = 0;
 int ts_y0 = 0;
 
-bool State::getTouch(int &x, int &y)
+bool State::getTouch(int16_t &x, int16_t &y)
 {
   if (tscreen.touched()) {
     TS_Point p = tscreen.getPoint();
