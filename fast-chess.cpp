@@ -20,7 +20,7 @@
 
 class Keeper
 {
-  public:
+public:
   Keeper(const char* _name): m_name(_name)
   {
     _millis = millis();
@@ -384,58 +384,58 @@ int toMinFen(char * fen, Position * position) {
 }
 
 void getMovelistGame(Game * game, char moves[]) {
-    getInitialGame(game);
+  getInitialGame(game);
 
-    for (int i=0; i<strlen(moves)-3; i += 5) {
-	makeMove(game, parseMove(&moves[i]));
-	if (moves[i+5] == ' ') i++;  // FIXME Queening
-    }
+  for (int i=0; i<strlen(moves)-3; i += 5) {
+    makeMove(game, parseMove(&moves[i]));
+    if (moves[i+5] == ' ') i++;  // FIXME Queening
+  }
 }
 
 // ========= UTILITY =========
 
 BOOL fromInitial(Game * game) {
-    if ( strcmp(game->positionHistory[0], INITIAL_FEN) == 0 )
-	return TRUE;
-    else
-	return FALSE;
+  if ( strcmp(game->positionHistory[0], INITIAL_FEN) == 0 )
+    return TRUE;
+  else
+    return FALSE;
 }
 
 Bitboard index2bb(int index) {
-    Bitboard bb = 1;
-    return bb << index;
+  Bitboard bb = 1;
+  return bb << index;
 }
 
 int str2index(char *str) {
-    int i, file_num=0, rank_num=0;
-    for(i=0; i<8; i++) {
-	if ( str[0] == FILES[i] )
-		file_num = i;
-	if ( str[1] == RANKS[i] )
-		rank_num = i;
-    }
-    return 8*rank_num + file_num;
+  int i, file_num=0, rank_num=0;
+  for(i=0; i<8; i++) {
+    if ( str[0] == FILES[i] )
+      file_num = i;
+    if ( str[1] == RANKS[i] )
+      rank_num = i;
+  }
+  return 8*rank_num + file_num;
 }
 
 Bitboard str2bb(char *str) {
-    return index2bb(str2index(str));
+  return index2bb(str2index(str));
 }
 
 BOOL isSet(Bitboard bb, int index) {
-    if (bb & index2bb(index))
-	return TRUE;
-    else
-	return FALSE;
+  if (bb & index2bb(index))
+    return TRUE;
+  else
+    return FALSE;
 }
 
 Bitboard lsb(Bitboard bb) {
-    int i;
-    for (i=0; i<NUM_SQUARES; i++) {
-	Bitboard bit = index2bb(i);
-	if (bb & bit)
-		return bit;
-    }
-    return 0;
+  int i;
+  for (i=0; i<NUM_SQUARES; i++) {
+    Bitboard bit = index2bb(i);
+    if (bb & bit)
+      return bit;
+  }
+  return 0;
 }
 
 Bitboard msb(Bitboard bb) {
@@ -459,30 +459,30 @@ int bb2index(Bitboard bb) {
 }
 
 char * movelist2str(Game * game) {
-    char * movestr = NULL;
+  char * movestr = NULL;
 
-    if (game->moveListLen == 0) {
-	movestr = (char*) malloc(sizeof(char));
-	movestr[0] = 0;
-	return movestr;
-    }
-
-    movestr = (char*) malloc (5*game->moveListLen);
-
-    int i;
-    for (i=0;i<game->moveListLen;i++) {
-	int leaving = getFrom(game->moveList[i]);
-	int arriving = getTo(game->moveList[i]);
-	movestr[5*i] = getFile(leaving);
-	movestr[5*i+1] = getRank(leaving);
-	movestr[5*i+2] = getFile(arriving);
-	movestr[5*i+3] = getRank(arriving);
-	movestr[5*i+4] = ' ';
-    }
-
-    movestr[5*game->moveListLen-1] = 0;
-
+  if (game->moveListLen == 0) {
+    movestr = (char*) malloc(sizeof(char));
+    movestr[0] = 0;
     return movestr;
+  }
+
+  movestr = (char*) malloc (5*game->moveListLen);
+
+  int i;
+  for (i=0;i<game->moveListLen;i++) {
+    int leaving = getFrom(game->moveList[i]);
+    int arriving = getTo(game->moveList[i]);
+    movestr[5*i] = getFile(leaving);
+    movestr[5*i+1] = getRank(leaving);
+    movestr[5*i+2] = getFile(arriving);
+    movestr[5*i+3] = getRank(arriving);
+    movestr[5*i+4] = ' ';
+  }
+
+  movestr[5*game->moveListLen-1] = 0;
+
+  return movestr;
 }
 
 Move getLastMove(Game * game) {
@@ -821,8 +821,8 @@ void printLegalMoves(Position * position) {
 }
 
 void printNode(Node node) {
-    printMove(node.move);
-    printf(": %d", node.score);
+  printMove(node.move);
+  printf(": %d", node.score);
 }
 
 void getTimestamp(char * timestamp) {
@@ -843,19 +843,19 @@ void dumpContent(Game * game) {
     getTimestamp(&filename[strlen(filename)]);
     sprintf(&filename[strlen(filename)], ".txt");
 
-    FILE * file = fopen(filename, "w+");
+  FILE * file = fopen(filename, "w+");
 
-    fprintf(file, "movelist = %s\nposition history:\n", movelist);
+  fprintf(file, "movelist = %s\nposition history:\n", movelist);
 
-    int i;
-    for (i=0; i<game->moveListLen+1; i++)
-	fprintf(file, "%s\n", game->positionHistory[i]);
+  int i;
+  for (i=0; i<game->moveListLen+1; i++)
+    fprintf(file, "%s\n", game->positionHistory[i]);
 
-    free(movelist);
-    fclose(file);
+  free(movelist);
+  fclose(file);
 
-    printf("Dumped game content to: %s\n", filename);
-    fflush(stdout);
+  printf("Dumped game content to: %s\n", filename);
+  fflush(stdout);
 }
 
 void dumpPGN(Game * game, char color, BOOL hasAI) {
@@ -872,7 +872,6 @@ void dumpPGN(Game * game, char color, BOOL hasAI) {
     time(&timer);
     tm_info = localtime(&timer);
     strftime(date, 11, "%Y.%m.%d", tm_info);
-
 
     fprintf(file, "[Event \"Casual Game\"]\n");
     fprintf(file, "[Site \"?\"]\n");
@@ -912,7 +911,6 @@ void dumpPGN(Game * game, char color, BOOL hasAI) {
     }
 
     fprintf(file, "[PlyCount \"%d\"]\n\n", game->moveListLen);
-
 
     int i;
     char ply[8];
@@ -1004,30 +1002,30 @@ BOOL isAmbiguous(Position * position, Move move) {
 }
 
 unsigned long hashPosition(Position * position) {
-    char fen[MAX_FEN_LEN];
-    toMinFen(fen, position);
+  char fen[MAX_FEN_LEN];
+  toMinFen(fen, position);
 
-    unsigned long hash = 5381;
-    int c, i=0;
+  unsigned long hash = 5381;
+  int c, i=0;
 
-    while ((c = fen[i++])) {
-	hash = ((hash << 5) + hash) + c;
-    }
+  while ((c = fen[i++])) {
+    hash = ((hash << 5) + hash) + c;
+  }
 
-    return hash;
+  return hash;
 }
 
 void writeToHashFile(Position * position, int evaluation, int depth) {
-    FILE * fp = fopen("hashfile", "a");
+  FILE * fp = fopen("hashfile", "a");
 
-    if (fp == NULL)
-	return;
+  if (fp == NULL)
+    return;
 
-    char fen[MAX_FEN_LEN];
-    toMinFen(fen, position);
+  char fen[MAX_FEN_LEN];
+  toMinFen(fen, position);
 
-    fprintf(fp, "%08lx %d %d %s\n", hashPosition(position), depth, evaluation, fen);
-    fclose(fp);
+  fprintf(fp, "%08lx %d %d %s\n", hashPosition(position), depth, evaluation, fen);
+  fclose(fp);
 }
 
 // ====== BOARD FILTERS ======

@@ -79,6 +79,8 @@ public:
 
   virtual bool partyEnded() = 0;
 
+  virtual bool getCell(Column_t, Row_t, Piece_t&, Color_t&) = 0;
+
   static void moveStr(chess::Move_t move, char *str)
   {
     str[0] = char(uint8_t(move.from.col)+'a');

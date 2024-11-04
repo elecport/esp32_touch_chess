@@ -174,4 +174,51 @@ public:
   {
     return hasGameEnded(&__game.position);
   }
+
+  bool getCell(
+    chess::Column_t col, chess::Row_t row, chess::Piece_t& p, chess::Color_t& c
+  ) override
+  {
+    char _c = getPieceChar(
+      (FILES_BB[uint8_t(col)] & RANKS_BB[7-uint8_t(row)]), &__game.position.board
+    );
+    if (_c == 'P') {
+      p = chess::Piece_t::P_PAWN;
+      c = chess::Color_t::C_WHITE;
+    } else if (_c == 'p') {
+      p = chess::Piece_t::P_PAWN;
+      c = chess::Color_t::C_BLACK;
+    } else if (_c == 'R') {
+      p = chess::Piece_t::P_ROOK;
+      c = chess::Color_t::C_WHITE;
+    } else if (_c == 'r') {
+      p = chess::Piece_t::P_ROOK;
+      c = chess::Color_t::C_BLACK;
+    } else if (_c == 'N') {
+      p = chess::Piece_t::P_KNIGHT;
+      c = chess::Color_t::C_WHITE;
+    } else if (_c == 'n') {
+      p = chess::Piece_t::P_KNIGHT;
+      c = chess::Color_t::C_BLACK;
+    } else if (_c == 'B') {
+      p = chess::Piece_t::P_BISHOP;
+      c = chess::Color_t::C_WHITE;
+    } else if (_c == 'b') {
+      p = chess::Piece_t::P_BISHOP;
+      c = chess::Color_t::C_BLACK;
+    } else if (_c == 'Q') {
+      p = chess::Piece_t::P_QUEEN;
+      c = chess::Color_t::C_WHITE;
+    } else if (_c == 'q') {
+      p = chess::Piece_t::P_QUEEN;
+      c = chess::Color_t::C_BLACK;
+    } else if (_c == 'K') {
+      p = chess::Piece_t::P_KING;
+      c = chess::Color_t::C_WHITE;
+    } else if (_c == 'k') {
+      p = chess::Piece_t::P_KING;
+      c = chess::Color_t::C_BLACK;
+    }
+    return _c!='.';
+  }
 };

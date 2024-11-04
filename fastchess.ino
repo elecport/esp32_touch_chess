@@ -222,6 +222,20 @@ public:
 
   touch_chess::State_t step(unsigned current_time) override
   {
+    _tft.fillScreen(ILI9341_BLACK);
+    drawBoard();
+    drawFigures();
+
+    _tft.fillRect(0, 270, 240, 50, ILI9341_BLACK);
+    _tft.setCursor(10, 290);
+    _tft.setTextColor(RGB565_IVORY);
+
+    _tft.setFont(&FreeMonoBold9pt7b);
+    if (__color == chess::Color_t::C_WHITE)
+      _tft.print("White: ");
+    else
+      _tft.print("Black: ");
+
     chess::Move_t mov;
     if (__players[size_t(__color)]->getType() == Player_t::HUMAN) {
       mov = __getMove();
@@ -229,21 +243,12 @@ public:
       mov = __chessParty->makeBotMove();
     }
     // Print last move
-    _tft.fillRect(0, 270, 240, 50, ILI9341_BLACK);
-    _tft.setCursor(10, 290);
-    _tft.setTextColor(RGB565_IVORY);
-    if (__color == chess::Color_t::C_WHITE)
-      _tft.print("White: ");
-    else
-      _tft.print("Black: ");
     char mstr[5];
     chess::Bot::moveStr(mov, mstr);
     mstr[4] = '\0';
     _tft.print(mstr);
     //printf("%x %x %x %x %s\n", int(mstr[0]), int(mstr[1]), int(mstr[2]), int(mstr[3]), mstr);
     bool party_cnt = __chessParty->partyEnded();
-    drawBoard();
-    drawFigures();
 
     if (party_cnt) {
       delete __chessParty;
@@ -334,14 +339,20 @@ private:
     while (true) {
       TS_Point p;
       if (getTouch(p.x, p.y)) {
-        _tft.fillScreen(ILI9341_BLACK);
-        drawBoard();
-        drawFigures();
         int file = (p.x - 12) / 27;
         int rank = 7 - (p.y - 42 - 13) / 27;
         printf("%d %d (%d %d)\n", p.x, p.y, file, rank);
         if (file >= 0 && file < 8 && rank >= 0 && file < 8) {
-          _tft.drawRect(12+27*file+1, 42+(7-rank)*27+1, 25, 25, ILI9341_BLUE);
+          chess::Piece_t p; chess::Color_t c;
+          if (__chessParty->getCell(chess::Column_t(file), chess::Row_t(7-rank), p, c)) {
+            printf("Colors: %d, %d\n", int(c), int(__color));
+            if (c == __color) {
+              _tft.fillScreen(ILI9341_BLACK);
+              drawBoard();
+              drawFigures();
+              _tft.drawRect(12+27*file+1, 42+(7-rank)*27+1, 25, 25, ILI9341_BLUE);
+            }
+          }
         }
       }
       delay(100);
