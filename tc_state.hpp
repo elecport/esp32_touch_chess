@@ -1,10 +1,16 @@
 #pragma once
 
-#include <Adafruit_ILI9341.h>
+//#include <Adafruit_ILI9341.h>
+#include <TFT_eSPI.h>
 #include <XPT2046_Touchscreen.h>
 
-extern Adafruit_ILI9341 _tft;
-extern XPT2046_Touchscreen tscreen;
+//extern Adafruit_ILI9341 *_tft;
+extern TFT_eSPI* _tft;
+extern XPT2046_Touchscreen *_tscreen;
+
+#define RGB565_IVORY 0xFFF5
+#define RGB565_CHOCOLATE 0x4980
+#define RGB565_DARKERGREY 0x39E7
 
 namespace touch_chess
 {
@@ -22,6 +28,30 @@ enum class State_t
   MAIN_MENU,
   GAME_SETUP,
   CHESS_GAME
+};
+
+class Keeper
+{
+public:
+  Keeper(const char* _name): m_name(_name)
+  {
+    _millis = millis();
+    for (unsigned i=0; i<_level; ++i)
+      putchar(' ');
+    ++_level;
+    printf("%s heap %u\n", m_name, ESP.getFreeHeap());
+  }
+  ~Keeper()
+  {
+    unsigned elapsed = millis() - _millis;
+    --_level;
+    for (unsigned i=0; i<_level; ++i)
+      putchar(' ');
+    printf("%s heap %u elapsed %u\n", m_name, ESP.getFreeHeap(), elapsed);
+  }
+  const char* m_name;
+  unsigned _millis;
+  static unsigned _level;
 };
 
 class State

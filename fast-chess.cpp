@@ -18,31 +18,6 @@
 
 #include "fast-chess.h"
 
-class Keeper
-{
-public:
-  Keeper(const char* _name): m_name(_name)
-  {
-    _millis = millis();
-    for (unsigned i=0; i<_level; ++i)
-      putchar(' ');
-    ++_level;
-    printf("%s heap %u\n", m_name, ESP.getFreeHeap());
-  }
-  ~Keeper()
-  {
-    unsigned elapsed = millis() - _millis;
-    --_level;
-    for (unsigned i=0; i<_level; ++i)
-      putchar(' ');
-    printf("%s heap %u elapsed %u\n", m_name, ESP.getFreeHeap(), elapsed);
-  }
-  const char* m_name;
-  unsigned _millis;
-  static unsigned _level;
-};
-unsigned Keeper::_level = 0;
-
 char FILES[8] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
 char RANKS[8] = {'1', '2', '3', '4', '5', '6', '7', '8'};
 
@@ -2352,7 +2327,7 @@ int quiescenceEvaluation(Position * position) {
 // ========= SEARCH ==========
 
 Node staticSearch(Position * position) {
-  Keeper k(__PRETTY_FUNCTION__);
+  //Keeper k(__PRETTY_FUNCTION__);
   int bestScore = position->toMove==WHITE?INT32_MIN:INT32_MAX;
   Move bestMove = 0;
 
@@ -2383,7 +2358,7 @@ Node staticSearch(Position * position) {
 }
 
 Node quiescenceSearch(Position * position) {
-  Keeper k(__PRETTY_FUNCTION__);
+  //Keeper k(__PRETTY_FUNCTION__);
   int bestScore = position->toMove==WHITE?INT32_MIN:INT32_MAX;
   Move bestMove = 0;
 
