@@ -14,6 +14,7 @@
 
 #include "tc_state.hpp"
 #include "tc_mainmenu.hpp"
+#include "tc_calibration.hpp"
 
 #define TFT_DC 2
 #define TFT_BL 21
@@ -46,116 +47,7 @@ touch_chess::State* _currentState;
 static touch_chess::State_t _currentStateType = touch_chess::State_t::MAIN_MENU;
 static touch_chess::State_t _previousStateType = touch_chess::State_t::S_EMPTY;
 
-class CalibrateState: public touch_chess::State
-{
-public:
-  CalibrateState()
-  {
-  }
-
-  ~CalibrateState()
-  { 
-  }
-
-  // Interface of the State
-  void enter() override
-  {
-    touch_chess::Keeper k(__PRETTY_FUNCTION__);
-
-    _tft->fillScreen(TFT_BLUE);
-    _tft->setCursor(20,20,2);
-    _tft->print("Calibration of the\n         screen");
-    delay(1000);
-    m_step = 0;
-    m_waitTouch = false;
-    _tft->fillScreen(TFT_BLACK);
-  }
-
-  touch_chess::State_t step(unsigned current_time) override
-  {
-    delay(100);
-    if (m_step > 3) {
-      Serial.print(m_coords[0][0], DEC);
-      Serial.print(":");
-      Serial.println(m_coords[2][0], DEC);
-      int x0 = (m_coords[0][0] + m_coords[2][0]) / 2;
-      Serial.print(m_coords[1][0], DEC);
-      Serial.print(":");
-      Serial.println(m_coords[3][0], DEC);
-      int xf = (m_coords[1][0] + m_coords[3][0]) / 2;
-      Serial.print(x0, DEC);
-      Serial.print(":");
-      Serial.println(xf, DEC);
-      Serial.println();
-
-      Serial.print(m_coords[0][1], DEC);
-      Serial.print(":");
-      Serial.println(m_coords[1][1], DEC);
-      int y0 = (m_coords[0][1] + m_coords[1][1]) / 2;
-      Serial.print(m_coords[2][1], DEC);
-      Serial.print(":");
-      Serial.println(m_coords[3][1], DEC);
-      int yf = (m_coords[2][1] + m_coords[3][1]) / 2;
-      Serial.print(y0, DEC);
-      Serial.print(":");
-      Serial.println(yf, DEC);
-      Serial.println();
-
-      int dx = (xf - x0) / 230;
-      int dy = (yf - y0) / 310;
-
-      touch_chess::ts_dx = dx;
-      touch_chess::ts_dy = dy;
-      touch_chess::ts_x0 = x0;
-      touch_chess::ts_y0 = y0;
-
-      puts("Making a file /calibration.conf");
-      fs::File f = SPIFFS.open("/calibration.conf", "w");
-      f.println(touch_chess::ts_x0, DEC);
-      f.println(touch_chess::ts_y0, DEC);
-      f.println(touch_chess::ts_dx, DEC);
-      f.println(touch_chess::ts_dy, DEC);
-      f.close();
-
-      return touch_chess::State_t::MAIN_MENU;
-    }
-    if (m_waitTouch == false) {
-      m_waitTouch = true;
-      if (m_step == 0) {
-        _tft->drawRect(4, 4, 3, 3, ILI9341_WHITE);
-      } else if (m_step == 1) {
-        _tft->drawRect(234, 4, 3, 3, ILI9341_WHITE);
-      } else if (m_step == 2) {
-        _tft->drawRect(4, 314, 3, 3, ILI9341_WHITE);
-      } else if (m_step == 3) {
-        _tft->drawRect(234, 314, 3, 3, ILI9341_WHITE);
-      }
-    } else {
-      if (_tscreen->touched()) {
-        m_waitTouch = false;
-        TS_Point p = _tscreen->getPoint();
-        m_coords[m_step][0] = p.x;
-        m_coords[m_step][1] = p.y;
-        _tft->setCursor(20,50+15*m_step);
-        _tft->print(p.x, DEC);
-        _tft->print(":");
-        _tft->print(p.y, DEC);
-        m_step++;
-      }
-    }
-    return touch_chess::State_t::CALIBRATION;
-  }
-
-private:
-
-  uint8_t m_step;
-
-  bool m_waitTouch;
-
-  uint16_t m_coords[4][2];
-};
-
-static CalibrateState _cal_state;
+static touch_chess::CalibrateState _cal_state;
 
 class ChessGame: public touch_chess::State
 {
@@ -221,7 +113,19 @@ public:
 
     chess::Move_t mov;
     if (__players[size_t(__color)]->getType() == Player_t::HUMAN) {
-      mov = __getMove();
+      while (true) {
+        mov = __getMove();
+        if (!__chessParty->isMoveValid(mov)) {
+          _tft->fillRect(50,100, 140, 50, TFT_RED);
+          _tft->setCursor(75, 110, TFT_YELLOW);
+          _tft->print("Bad move!");
+          delay(1000);
+          drawBoard();
+          drawFigures();
+        } else
+          break;
+      };
+      __chessParty->enterMove(mov);
     } else {
       mov = __chessParty->makeBotMove();
     }
@@ -322,28 +226,54 @@ private:
 
   chess::Move_t __getMove()
   {
+    chess::Move_t result;
+    int file_from, rank_from;
+    int file_to, rank_to;
     // Get first cell
     while (true) {
       TS_Point p;
       if (getTouch(p.x, p.y)) {
-        int file = (p.x - 12) / 27;
-        int rank = 7 - (p.y - 42 - 13) / 27;
-        printf("%d %d (%d %d)\n", p.x, p.y, file, rank);
-        if (file >= 0 && file < 8 && rank >= 0 && file < 8) {
+        file_from = (p.x - 12) / 27;
+        rank_from = 7 - (p.y - 42 - 13) / 27;
+        if (file_from >= 0 && file_from < 8 && rank_from >= 0 && rank_from < 8) {
           chess::Piece_t p; chess::Color_t c;
-          if (__chessParty->getCell(chess::Column_t(file), chess::Row_t(7-rank), p, c)) {
-            printf("Colors: %d, %d\n", int(c), int(__color));
+          if (__chessParty->getCell(chess::Column_t(file_from), chess::Row_t(7-rank_from), p, c)) {
             if (c == __color) {
               _tft->fillScreen(ILI9341_BLACK);
               drawBoard();
               drawFigures();
-              _tft->drawRect(12+27*file+1, 42+(7-rank)*27+1, 25, 25, ILI9341_BLUE);
+              _tft->drawRect(12+27*file_from+1, 42+(7-rank_from)*27+1, 25, 25, TFT_BLUE);
+              break;
             }
           }
         }
       }
       delay(100);
     }
+    result.from = { chess::Column_t(file_from), chess::Row_t(rank_from) };
+
+    while (true) {
+      TS_Point p;
+      if (getTouch(p.x, p.y)) {
+        file_to = (p.x - 12) / 27;
+        rank_to = 7 - (p.y - 42 - 13) / 27;
+        if (file_to >= 0 && file_to < 8 && rank_to >= 0 && rank_to < 8) {
+          chess::Piece_t p; chess::Color_t c;
+          bool isfig = __chessParty->getCell(chess::Column_t(file_to), chess::Row_t(7-rank_to), p, c);
+          //if ((isfig && (c != __color)) || !isfig) {
+              _tft->fillScreen(TFT_BLACK);
+              drawBoard();
+              drawFigures();
+              _tft->drawRect(12+27*file_from+1, 42+(7-rank_from)*27+1, 25, 25, TFT_BLUE);
+              _tft->drawRect(12+27*file_to+1, 42+(7-rank_to)*27+1, 25, 25, TFT_DARKGREEN);
+              break;
+          //}
+        }
+      }
+      delay(100);
+    }
+    result.to = { chess::Column_t(file_to), chess::Row_t(rank_to) };
+    return result;
   }
 
   Player* __players[2];
@@ -369,17 +299,17 @@ public:
   // Interface of the State
   void enter() override
   {
-    _tft->fillScreen(TFT_BLACK);
+    _tft->fillScreen(RGB565_DARKERGREY);
 
     _tft->setCursor(35, 20, 2);
     _tft->print("White:");
 
     _tft->drawRoundRect(10, 40, 220, 25, 3, TFT_WHITE);
-    _tft->setCursor(15, 50);
+    _tft->setCursor(15, 45);
     _tft->print("<");
-    _tft->setCursor(215, 50);
+    _tft->setCursor(215, 45);
     _tft->print(">");
-    _tft->setCursor(40, 50);
+    _tft->setCursor(40, 45);
     _tft->print("fastchess");
 
     _tft->setCursor(35, 100);
@@ -415,8 +345,8 @@ public:
         );
         return touch_chess::State_t::CHESS_GAME;
       } else if (y>40 && y<65) {
-        _tft->fillRect(50, 41, 150, 23, TFT_BLACK);
-        _tft->setCursor(40, 50);
+        _tft->fillRect(50, 41, 150, 23, RGB565_DARKERGREY);
+        _tft->setCursor(40, 45);
         __playersHumanFlag[size_t(chess::Color_t::C_WHITE)] = !__playersHumanFlag[size_t(chess::Color_t::C_WHITE)];
         if (__playersHumanFlag[size_t(chess::Color_t::C_WHITE)])
           _tft->print("human");
