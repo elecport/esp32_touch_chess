@@ -57,13 +57,15 @@ public:
 class State
 {
 public:
-  State() = default;
+  State();
   virtual ~State() = default;
 
   virtual void enter() = 0;
   virtual State_t step(unsigned) = 0;
 protected:
   bool getTouch(int16_t &x, int16_t &y);
+private:
+  unsigned __lastTouched;
 };
 
 } // namespace touch_chess

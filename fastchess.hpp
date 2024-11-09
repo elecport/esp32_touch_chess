@@ -54,11 +54,9 @@ private:
 class ChessParty: public chess::Bot
 {
 public:
-  ChessParty(Player* players[2])
+  ChessParty()
   {
     getInitialGame(&__game);
-    __players[0] = players[0];
-    __players[1] = players[1];
     __color = chess::Color_t::C_WHITE;
   }
 
@@ -66,28 +64,6 @@ public:
 
   chess::Color_t color() const { return __color; }
   Game& game() { return __game; }
-
-  bool step()
-  {
-    size_t i = size_t(__color);
-    __color = chess::Color_t(1-i);
-
-    printBoard(&(__game.position.board));
-    if (hasGameEnded(&__game.position)) {
-      printOutcome(&__game.position);
-      return false;
-    }
-    Move m;
-    if (__players[i]->getType() == Player_t::HUMAN)
-      m = __getPlayerMove();
-    else {
-      AIPlayer* aip = static_cast<AIPlayer*>(__players[i]);
-      m = getAIMove(&__game, aip->getDepth());
-    }
-    makeMove(&__game, m);
-
-    return true;
-  }
 
   void getBoard(char (&board)[8][8])
   {
@@ -99,25 +75,6 @@ public:
   }
 
 private:
-
-  Move __getPlayerMove()
-  {
-    Move *moves = new Move[MAX_BRANCHING_FACTOR];
-    int moveCount = legalMoves(moves, &(__game.position), __game.position.toMove);
-    do {
-      char input[5];
-      while (!Serial.available()) delay(10);
-      Serial.readBytesUntil('\n', input, 5);
-      Move pm = parseMove(input);
-      for (int i=0; i<moveCount; ++i){
-        if (pm == moves[i]) {
-          delete [] moves;
-          return pm;
-        }
-      }
-      puts("Illegal move!");
-    } while (true);
-  }
 
   static chess::Move_t toMove(Move move)
   {
@@ -135,7 +92,6 @@ private:
   chess::Color_t __color;
   Game __game;
   uint8_t __depth = 1;
-  Player* __players[2];
 
   // Bot interface
 public:
@@ -155,9 +111,9 @@ public:
     return false;
   }
 
-  chess::Move_t makeBotMove() override
+  chess::Move_t makeBotMove(uint8_t &percent) override
   {
-    Move m = getAIMove(&__game, __depth);
+    Move m = getAIMove(&__game, __depth, &percent);
     makeMove(&__game, m);
     return toMove(m);
   }

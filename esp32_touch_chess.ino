@@ -1,11 +1,8 @@
+#include "us.hpp"
 #include <TFT_eSPI.h>
 #include <SPI.h>
-//#include "Adafruit_GFX.h"
 
-
-//#include <Fonts/FreeMono9pt7b.h>
-//#include <Fonts/FreeMonoBold9pt7b.h>
-//#include <Fonts/Picopixel.h>
+#define RED_DISPLAY
 
 #include <SPIFFS.h>
 #include "fastchess.hpp"
@@ -16,6 +13,14 @@
 #include "tc_mainmenu.hpp"
 #include "tc_calibration.hpp"
 
+#ifdef RED_DISPLAY
+
+//#define TFT_RS 4
+//#define TFT_CS 5
+#define TS_CS 22
+
+#else
+
 #define TFT_DC 2
 #define TFT_BL 21
 #define TFT_CS 15
@@ -25,10 +30,11 @@
 #define TS_IN  32
 #define TS_CLK 25
 
+#endif
+
 static SPIClass *vspi;
 //static SPIClass hspi(HSPI);
 
-//Adafruit_ILI9341 *_tft;
 TFT_eSPI* _tft;
 XPT2046_Touchscreen *_tscreen;
 
@@ -88,11 +94,11 @@ public:
 
   void enter() override
   {
-    _tft->fillScreen(ILI9341_BLACK);
+    _tft->fillScreen(TFT_BLACK);
 
     if (__chessParty != nullptr)
       delete __chessParty;
-    __chessParty = new ChessParty(__players);
+    __chessParty = new ChessParty();
     __color = chess::Color_t::C_WHITE;
 
     drawBoard();
@@ -100,12 +106,12 @@ public:
 
   touch_chess::State_t step(unsigned current_time) override
   {
-    _tft->fillScreen(ILI9341_BLACK);
+    _tft->fillScreen(TFT_BLACK);
     drawBoard();
     drawFigures();
 
     _tft->setCursor(10, 300);
-    _tft->setTextColor(ILI9341_WHITE);
+    _tft->setTextColor(TFT_WHITE);
     if (__color == chess::Color_t::C_WHITE)
       _tft->print("White: thinking");
     else
@@ -127,11 +133,28 @@ public:
       };
       __chessParty->enterMove(mov);
     } else {
-      mov = __chessParty->makeBotMove();
+      TaskHandle_t th;
+      task_parameters_t params;
+      params.percent = 0;
+      params.bot = __chessParty;
+      params.finished = false;
+      BaseType_t bt = xTaskCreatePinnedToCore(__aiMoveTask, nullptr, 8192, &params, 1, &th, 1);
+      Serial.println("Task created");
+      uint8_t last_pc = 0;
+      _tft->fillRect(5, 5, 230, 5, TFT_BLACK);
+      while (!params.finished) {
+        Serial.println(params.percent, DEC);
+        if (last_pc != params.percent) {
+          last_pc = params.percent;
+          _tft->fillRect(5, 5, 230*last_pc/100, 5, TFT_BLUE);
+        }
+        delay(300);
+      }
+      mov = params.mov;
     }
     __color = chess::Color_t(1-uint8_t(__color));
 
-    _tft->fillRect(0, 270, 240, 50, ILI9341_BLACK);
+    _tft->fillRect(0, 270, 240, 50, TFT_BLACK);
     _tft->setCursor(10, 280);
     _tft->setTextColor(RGB565_IVORY);
 
@@ -159,6 +182,21 @@ public:
   }
 
 private:
+  struct task_parameters_t
+  {
+    uint8_t percent;
+    chess::Bot* bot;
+    chess::Move_t mov;
+    bool finished;
+  };
+
+  static void __aiMoveTask(void* p)
+  {
+    task_parameters_t* params = reinterpret_cast<task_parameters_t*>(p);
+    params->mov = params->bot->makeBotMove(params->percent);
+    params->finished = true;
+    vTaskDelete(nullptr);
+  }
 
   void drawBoard()
   {
@@ -239,7 +277,7 @@ private:
           chess::Piece_t p; chess::Color_t c;
           if (__chessParty->getCell(chess::Column_t(file_from), chess::Row_t(7-rank_from), p, c)) {
             if (c == __color) {
-              _tft->fillScreen(ILI9341_BLACK);
+              _tft->fillScreen(TFT_BLACK);
               drawBoard();
               drawFigures();
               _tft->drawRect(12+27*file_from+1, 42+(7-rank_from)*27+1, 25, 25, TFT_BLUE);
@@ -372,21 +410,27 @@ static GameSetup _game_setup_state;
 static touch_chess::MainMenu _main_menu_state;
 
 
-void setup() {
-  //disableCore0WDT();
-  //disableCore1WDT();
-
+void setup()
+{
+#ifndef RED_DISPLAY
   vspi = new SPIClass(VSPI);
   vspi->begin(TS_CLK, TS_OUT, TS_IN, TS_CS);
+#endif
 
   _tscreen = new XPT2046_Touchscreen(TS_CS);
   _tft = new TFT_eSPI();
 
   _tft->init();
   _tft->fillScreen(TFT_BLUE);
+#ifndef RED_DISPLAY
   _tft->invertDisplay(true);
-  
+#endif
+
+#ifndef RED_DISPLAY
   _tscreen->begin(*vspi);
+#else
+  _tscreen->begin();
+#endif
   _tscreen->setRotation(2);
   delay(300);
   Serial.begin(115200);

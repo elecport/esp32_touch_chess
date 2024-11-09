@@ -70,7 +70,7 @@ public:
   /**
    * @brief Make bots next move
    */
-  virtual Move_t makeBotMove() = 0;
+  virtual Move_t makeBotMove(uint8_t &percent) = 0;
 
   /**
    * @brief Enter next counterpart move

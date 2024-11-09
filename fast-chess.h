@@ -353,14 +353,14 @@ int quiescenceEvaluation(Position * position);
 // ========= SEARCH ==========
 
 Node staticSearch(Position * position);
-Node quiescenceSearch(Position * position);
+Node quiescenceSearch(Position * position, uint8_t* percent);
 Node alphaBeta(Position * position, char depth, int alpha, int beta);
 int alphaBetaNodes(Node * nodes, Position * position, char depth);
-Node iterativeDeepeningAlphaBeta(Position * position, char depth, int alpha, int beta, BOOL verbose);
+Node iterativeDeepeningAlphaBeta(Position * position, char depth, int alpha, int beta, BOOL verbose, uint8_t* percent);
 Node pIDAB(Position * position, char depth, int * p_alpha, int * p_beta);
 Node pIDABhashed(Position * position, char depth, int * p_alpha, int * p_beta);
 Move getRandomMove(Position * position);
-Move getAIMove(Game * game, int depth);
+Move getAIMove(Game * game, int depth, uint8_t* percent);
 Move parseMove(char * move);
 Move getPlayerMove();
 Move suggestMove(char fen[], int depth);

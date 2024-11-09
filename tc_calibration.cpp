@@ -1,5 +1,7 @@
 #include "tc_calibration.hpp"
 
+#include <SPIFFS.h>
+
 namespace touch_chess
 {
 
@@ -67,13 +69,13 @@ State_t CalibrateState::step(unsigned current_time)
   if (m_waitTouch == false) {
     m_waitTouch = true;
     if (m_step == 0) {
-      _tft->drawRect(4, 4, 3, 3, ILI9341_WHITE);
+      _tft->drawRect(4, 4, 3, 3, TFT_WHITE);
     } else if (m_step == 1) {
-      _tft->drawRect(234, 4, 3, 3, ILI9341_WHITE);
+      _tft->drawRect(234, 4, 3, 3, TFT_WHITE);
     } else if (m_step == 2) {
-      _tft->drawRect(4, 314, 3, 3, ILI9341_WHITE);
+      _tft->drawRect(4, 314, 3, 3, TFT_WHITE);
     } else if (m_step == 3) {
-      _tft->drawRect(234, 314, 3, 3, ILI9341_WHITE);
+      _tft->drawRect(234, 314, 3, 3, TFT_WHITE);
     }
   } else {
     if (_tscreen->touched()) {

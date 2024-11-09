@@ -2357,8 +2357,7 @@ Node staticSearch(Position * position) {
   return (Node) { .move = bestMove, .score = bestScore };
 }
 
-Node quiescenceSearch(Position * position) {
-  //Keeper k(__PRETTY_FUNCTION__);
+Node quiescenceSearch(Position * position, uint8_t* percent) {
   int bestScore = position->toMove==WHITE?INT32_MIN:INT32_MAX;
   Move bestMove = 0;
 
@@ -2368,7 +2367,8 @@ Node quiescenceSearch(Position * position) {
   Position newPosition;
   int i;
   for (i=0; i<moveCount; i++) {
-    printf("%d/%d\n", i, moveCount);
+    *percent = i * 100 / moveCount;
+    //printf("%d/%d\n", i, moveCount);
     updatePosition(&newPosition, position, moves[i]);
     int score = quiescenceEvaluation(&newPosition);
 
@@ -2456,12 +2456,12 @@ int alphaBetaNodes(Node * sortedNodes, Position * position, char depth) {
     return moveCount;
 }
 
-Node iterativeDeepeningAlphaBeta(Position * position, char depth, int alpha, int beta, BOOL verbose) {
+Node iterativeDeepeningAlphaBeta(Position * position, char depth, int alpha, int beta, BOOL verbose, uint8_t* percent) {
   if (hasGameEnded(position))
     return (Node) { .score = endNodeEvaluation(position) };
 
   if (depth == 1)
-    return quiescenceSearch(position);
+    return quiescenceSearch(position, percent);
 
   // Mate in 1
   Node staticNode = staticSearch(position);
@@ -2490,7 +2490,8 @@ Node iterativeDeepeningAlphaBeta(Position * position, char depth, int alpha, int
       fflush(stdout);
     }
 
-    int score = iterativeDeepeningAlphaBeta(&newPosition, depth-1, alpha, beta, FALSE).score;
+    uint8_t percent;
+    int score = iterativeDeepeningAlphaBeta(&newPosition, depth-1, alpha, beta, FALSE, &percent).score;
 
     if (verbose) {
       printf("%.2f\n", score/100.0);
@@ -2520,106 +2521,110 @@ Node iterativeDeepeningAlphaBeta(Position * position, char depth, int alpha, int
 }
 
 Node pIDAB(Position * position, char depth, int * p_alpha, int * p_beta) {
-    if (hasGameEnded(position))
-        return (Node) { .score = endNodeEvaluation(position) };
+  if (hasGameEnded(position))
+    return (Node) { .score = endNodeEvaluation(position) };
 
-    if (depth == 1)
-        return quiescenceSearch(position);
+  if (depth == 1) {
+    uint8_t percent;
+    return quiescenceSearch(position, &percent);
+  }
 
-    // Mate in 1
-    Node staticNode = staticSearch(position);
-    if (staticNode.score == winScore(position->toMove))
-        return staticNode;
+  // Mate in 1
+  Node staticNode = staticSearch(position);
+  if (staticNode.score == winScore(position->toMove))
+    return staticNode;
 
-    Move bestMove = 0;
+  Move bestMove = 0;
 
-    Node nodes[MAX_BRANCHING_FACTOR];
-    int moveCount = alphaBetaNodes(nodes, position, depth-1);
+  Node nodes[MAX_BRANCHING_FACTOR];
+  int moveCount = alphaBetaNodes(nodes, position, depth-1);
 
-    Position newPosition;
-    int i;
-    int alpha = *p_alpha;
-    int beta = *p_beta;
-    for (i=0; i<moveCount; i++) {
-	updatePosition(&newPosition, position, nodes[i].move);
+  Position newPosition;
+  int i;
+  int alpha = *p_alpha;
+  int beta = *p_beta;
+  for (i=0; i<moveCount; i++) {
+    updatePosition(&newPosition, position, nodes[i].move);
 
-	int score = iterativeDeepeningAlphaBeta(&newPosition, depth-1, alpha, beta, FALSE).score;
+    uint8_t percent;
+    int score = iterativeDeepeningAlphaBeta(&newPosition, depth-1, alpha, beta, FALSE, &percent).score;
 
-	if (score == winScore(position->toMove)) {
-		return (Node) { .move = nodes[i].move, .score = score };
-	}
-
-	if (position->toMove == WHITE && score > alpha) {
-		alpha = score;
-	    bestMove = nodes[i].move;
-	} else if (position->toMove == BLACK && score < beta) {
-		beta = score;
-	    bestMove = nodes[i].move;
-	}
-
-	if (alpha > beta || alpha > *p_beta || *p_alpha > beta) {
-		break;
-	}
+    if (score == winScore(position->toMove)) {
+		  return (Node) { .move = nodes[i].move, .score = score };
     }
 
-    return (Node) { .move = bestMove, .score = position->toMove==WHITE?alpha:beta };
+    if (position->toMove == WHITE && score > alpha) {
+      alpha = score;
+      bestMove = nodes[i].move;
+    } else if (position->toMove == BLACK && score < beta) {
+      beta = score;
+      bestMove = nodes[i].move;
+    }
 
+    if (alpha > beta || alpha > *p_beta || *p_alpha > beta) {
+      break;
+    }
+  }
+
+  return (Node) { .move = bestMove, .score = position->toMove==WHITE?alpha:beta };
 }
 
 Node pIDABhashed(Position * position, char depth, int * p_alpha, int * p_beta) {
-    if (hasGameEnded(position)) {
-	int score = endNodeEvaluation(position);
-	writeToHashFile(position, score, 0);
-	return (Node) { .score = score };
+  if (hasGameEnded(position)) {
+    int score = endNodeEvaluation(position);
+    writeToHashFile(position, score, 0);
+    return (Node) { .score = score };
+  }
+
+  if (depth <= 1) {
+    uint8_t percent;
+    Node quie = quiescenceSearch(position, &percent);
+    writeToHashFile(position, quie.score, depth);
+    return quie;
+  }
+
+  // Mate in 1
+  Node staticNode = staticSearch(position);
+  if (staticNode.score == winScore(position->toMove)) {
+	  writeToHashFile(position, staticNode.score, 1);
+    return staticNode;
+  }
+
+  Move bestMove = 0;
+
+  Node nodes[MAX_BRANCHING_FACTOR];
+  int moveCount = alphaBetaNodes(nodes, position, depth-1);
+
+  Position newPosition;
+  int i;
+  int alpha = *p_alpha;
+  int beta = *p_beta;
+  for (i=0; i<moveCount; i++) {
+    updatePosition(&newPosition, position, nodes[i].move);
+
+    uint8_t percent;
+    int score = iterativeDeepeningAlphaBeta(&newPosition, depth-1, alpha, beta, FALSE, &percent).score;
+    writeToHashFile(&newPosition, score, depth-1);
+
+    if (score == winScore(position->toMove)) {
+		  return (Node) { .move = nodes[i].move, .score = score };
     }
 
-    if (depth <= 1) {
-	Node quie = quiescenceSearch(position);
-	writeToHashFile(position, quie.score, depth);
-	return quie;
+    if (position->toMove == WHITE && score > alpha) {
+      alpha = score;
+      bestMove = nodes[i].move;
+    } else if (position->toMove == BLACK && score < beta) {
+      beta = score;
+      bestMove = nodes[i].move;
     }
 
-    // Mate in 1
-    Node staticNode = staticSearch(position);
-    if (staticNode.score == winScore(position->toMove)) {
-	writeToHashFile(position, staticNode.score, 1);
-	return staticNode;
+    if (alpha > beta || alpha > *p_beta || *p_alpha > beta) {
+      break;
     }
+  }
 
-    Move bestMove = 0;
-
-    Node nodes[MAX_BRANCHING_FACTOR];
-    int moveCount = alphaBetaNodes(nodes, position, depth-1);
-
-    Position newPosition;
-    int i;
-    int alpha = *p_alpha;
-    int beta = *p_beta;
-    for (i=0; i<moveCount; i++) {
-	updatePosition(&newPosition, position, nodes[i].move);
-
-	int score = iterativeDeepeningAlphaBeta(&newPosition, depth-1, alpha, beta, FALSE).score;
-	writeToHashFile(&newPosition, score, depth-1);
-
-	if (score == winScore(position->toMove)) {
-		return (Node) { .move = nodes[i].move, .score = score };
-	}
-
-	if (position->toMove == WHITE && score > alpha) {
-		alpha = score;
-	    bestMove = nodes[i].move;
-	} else if (position->toMove == BLACK && score < beta) {
-		beta = score;
-	    bestMove = nodes[i].move;
-	}
-
-	if (alpha > beta || alpha > *p_beta || *p_alpha > beta) {
-		break;
-	}
-    }
-
-    writeToHashFile(position, position->toMove==WHITE?alpha:beta, depth);
-    return (Node) { .move = bestMove, .score = position->toMove==WHITE?alpha:beta };
+  writeToHashFile(position, position->toMove==WHITE?alpha:beta, depth);
+  return (Node) { .move = bestMove, .score = position->toMove==WHITE?alpha:beta };
 }
 
 
@@ -2948,7 +2953,7 @@ Move getRandomMove(Position * position) {
     return moves[chosenMove];
 }
 
-Move getAIMove(Game * game, int depth) {
+Move getAIMove(Game * game, int depth, uint8_t* percent) {
   printf("--- AI ---\n");
   fflush(stdout);
 
@@ -2978,15 +2983,15 @@ Move getAIMove(Game * game, int depth) {
 #ifdef _WIN32
     Node node = idabThreadedBestFirst(&game->position, depth, TRUE);
 #else
-    Node node = iterativeDeepeningAlphaBeta(&game->position, depth, INT32_MIN, INT32_MAX, TRUE);
+    Node node = iterativeDeepeningAlphaBeta(&game->position, depth, INT32_MIN, INT32_MAX, TRUE, percent);
 #endif
 
     endTime = time(NULL);
 
-    printf("CHOSEN move: ");
+    //printf("CHOSEN move: ");
     printFullMove(node.move, &(game->position.board));
-    printf(" in %d seconds [%+.2f, %+.2f]\n", (int) (endTime-startTime), staticEvaluation(&game->position)/100.0, node.score/100.0);
-    fflush(stdout);
+    //printf(" in %d seconds [%+.2f, %+.2f]\n", (int) (endTime-startTime), staticEvaluation(&game->position)/100.0, node.score/100.0);
+    //fflush(stdout);
 
     return node.move;
 }
@@ -3006,128 +3011,6 @@ Move getPlayerMove() {
 Move suggestMove(char fen[], int depth) {
     Game game;
     getFenGame(&game, fen);
-    return getAIMove(&game, depth);
+    uint8_t percent;
+    return getAIMove(&game, depth, &percent);
 }
-
-// ===== PLAY LOOP (TEXT) ====
-
-void playTextWhite(Game* game, int depth) {
-  printf("Playing as WHITE!\n");
-  fflush(stdout);
-
-  while(TRUE) {
-	  printBoard(&(game->position.board));
-	  if (hasGameEnded(&game->position))
-		  break;
-
-    Move pm;
-    Move *moves = new Move[MAX_BRANCHING_FACTOR];
-    int moveCount = legalMoves(moves, &(game->position), game->position.toMove);
-    do {
-      pm = getPlayerMove();
-      bool flag = false;
-      for (int i=0; i<moveCount; ++i){
-        if (pm == moves[i]) {
-          flag = true;
-          break;
-        }
-      }
-      if (flag)
-        break;
-      puts("Illegal move!");
-    } while (1);
-    delete [] moves;
-    
-	  makeMove(game, pm);
-
-	  printBoard(&(game->position.board));
-	  if (hasGameEnded(&game->position))
-		  break;
-
-	  makeMove(game, getAIMove(game, depth));
-  }
-  printOutcome(&game->position);
-}
-
-void playTextBlack(int depth) {
-    printf("Playing as BLACK!\n");
-    fflush(stdout);
-
-    Game game;
-    getInitialGame(&game);
-
-    while(TRUE) {
-	printBoard(&(game.position.board));
-	if (hasGameEnded(&game.position))
-		break;
-
-	makeMove(&game, getAIMove(&game, depth));
-
-	printBoard(&(game.position.board));
-	if (hasGameEnded(&game.position))
-		break;
-
-	makeMove(&game, getPlayerMove());
-    }
-    printOutcome(&game.position);
-}
-
-void playTextAs(char color, int depth) {
-    if (color == WHITE);
-	//playTextWhite(depth);
-    if (color == BLACK)
-	playTextBlack(depth);
-}
-
-void playTextRandomColor(int depth) {
-    char colors[] = {WHITE, BLACK};
-    char color = colors[rand()%2];
-    playTextAs(color, depth);
-}
-
-// ===========================
-
- /*
-int main(int argc, char *argv[]) {
-    srand(time(NULL));
-
-    int opt;
-    int FEN_MODE = 0, MOVES_MODE = 1, mode = FEN_MODE;
-    int depth = DEFAULT_AI_DEPTH;
-
-    while ((opt = getopt(argc, argv, "fmd:v")) != -1) {
-	switch (opt) {
-	case 'f': mode = FEN_MODE; break;
-	case 'm': mode = MOVES_MODE; break;
-	case 'd': depth = atoi(optarg); break;
-	case 'v': printf(ENGINE_VERSION); exit(0);
-	default:
-	    fprintf(stderr, "Usage: %s [-d depth] [-f fen] [-m move_list]\n", argv[0]);
-	    exit(EXIT_FAILURE);
-	}
-    }
-
-    Game game;
-    if (argc > optind) {
-	if (mode == FEN_MODE) {
-	    getFenGame(&game, argv[optind]);
-	} else if (mode == MOVES_MODE) {
-	    getMovelistGame(&game, argv[optind]);
-	}
-    } else {
-	getInitialGame(&game);
-    }
-
-    Move move;
-    if ( mode == MOVES_MODE && countBookOccurrences(&game) > 0 ) {
-	move = getBookMove(&game);
-    } else {
-	Node node = iterativeDeepeningAlphaBeta(&(game.position), (char) depth, INT32_MIN, INT32_MAX, FALSE);
-	move = node.move;
-    }
-
-    printf("%c%c%c%c", getFile(getFrom(move)), getRank(getFrom(move)), getFile(getTo(move)), getRank(getTo(move)));
-
-    return EXIT_SUCCESS;
-}
-// */
