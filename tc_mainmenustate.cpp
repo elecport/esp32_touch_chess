@@ -1,7 +1,13 @@
-#include <SPIFFS.h>
-//#include <Fonts/FreeMonoBold9pt7b.h>
+/*
+Copyright (c) 2024 Andrey V. Skvortsov
 
-#include "tc_mainmenu.hpp"
+This work is licensed under the terms of the MIT license.  
+For a copy, see LICENSE file.
+*/
+
+#include <SPIFFS.h>
+
+#include "tc_mainmenustate.hpp"
 
 #define SCROLL_STEP_X 1
 #define SCROLL_STEP_Y 2

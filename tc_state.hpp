@@ -1,6 +1,12 @@
+/*
+Copyright (c) 2024 Andrey V. Skvortsov
+
+This work is licensed under the terms of the MIT license.  
+For a copy, see LICENSE file.
+*/
+
 #pragma once
 
-//#include <Adafruit_ILI9341.h>
 #include <TFT_eSPI.h>
 #include <XPT2046_Touchscreen.h>
 
@@ -19,6 +25,16 @@ extern int ts_dx;
 extern int ts_dy;
 extern int ts_x0;
 extern int ts_y0;
+
+extern const uint8_t* pieces_bmps[][2];
+
+enum class PlayerClass_t
+{
+  HUMAN = 0,
+  FASTCHESS_1,
+  FASTCHESS_2,
+  FASTCHESS_3
+};
 
 enum class State_t
 {

@@ -1,3 +1,10 @@
+/*
+Copyright (c) 2024 Andrey V. Skvortsov
+
+This work is licensed under the terms of the MIT license.  
+For a copy, see LICENSE file.
+*/
+
 #include <stdint.h>
   
 const uint8_t chess_pawn_bitmap[] = {
