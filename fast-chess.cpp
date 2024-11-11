@@ -2054,9 +2054,9 @@ BOOL hasInsufficientMaterial(Board * board) {
 }
 
 BOOL isEndgame(Board * board) {
-    if (countBits(getOccupiedSquares(board)) <= ENDGAME_PIECE_COUNT)
-	return TRUE;
-    return FALSE;
+  if (countBits(getOccupiedSquares(board)) <= ENDGAME_PIECE_COUNT)
+    return TRUE;
+  return FALSE;
 }
 
 BOOL isOver75MovesRule(Position * position) {

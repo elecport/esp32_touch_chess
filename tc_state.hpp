@@ -79,7 +79,7 @@ public:
   virtual void enter() = 0;
   virtual State_t step(unsigned) = 0;
 protected:
-  bool getTouch(int16_t &x, int16_t &y);
+  bool _getTouch(int16_t &x, int16_t &y);
 private:
   unsigned __lastTouched;
 };

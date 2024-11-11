@@ -5,6 +5,13 @@ This work is licensed under the terms of the MIT license.
 For a copy, see LICENSE file.
 */
 
+/**
+ * @file chess.hpp
+ * @brief Chess-domain related datatypes
+ * 
+ * Abstract classes and eumeratons for the Chess game related terms
+ */
+
 #pragma once
 
 #include <inttypes.h>
@@ -12,6 +19,9 @@ For a copy, see LICENSE file.
 namespace chess
 {
 
+/**
+ * @brief Chess piece type
+ */
 enum class Piece_t: uint8_t
 {
   P_PAWN = 0,
@@ -22,13 +32,19 @@ enum class Piece_t: uint8_t
   P_KING = 5,
 };
 
+/**
+ * @brief Piece color type
+ */
 enum class Color_t: uint8_t
 {
   C_WHITE = 0,
   C_BLACK = 1
 };
 
-enum class Row_t : uint8_t
+/**
+ * @brief Rank (row) of the board cells
+ */
+enum class Rank_t : uint8_t
 {
   R_1 = 0,
   R_2 = 1,
@@ -40,33 +56,56 @@ enum class Row_t : uint8_t
   R_8 = 7
 };
 
-enum class Column_t : uint8_t
+/**
+ * @brief File (column) of the board cells
+ */
+enum class File_t : uint8_t
 {
-  R_A = 0,
-  R_B = 1,
-  R_C = 2,
-  R_D = 3,
-  R_E = 4,
-  R_F = 5,
-  R_G = 6,
-  R_H = 7
+  F_A = 0,
+  F_B = 1,
+  F_C = 2,
+  F_D = 3,
+  F_E = 4,
+  F_F = 5,
+  F_G = 6,
+  F_H = 7
 };
 
+/**
+ * @brif Board cell coordinates
+ */
 struct Cell_t
 {
-  Column_t col;
-  Row_t row;
+  File_t col;
+  Rank_t row;
 };
 
+/**
+ * @brief Move of the piece coordinates
+ */
 struct Move_t
 {
   Cell_t from;
   Cell_t to;
 };
 
+enum class End_t: uint8_t
+{
+  CHECKMATE,
+  STALLMATE,
+  INSUFFICIENT_MAT,
+  MOVES_EXPIRED
+};
+
+/**
+ * @brief Chess bot
+ * 
+ * Abstract class for chess bot
+ */
 class Bot
 {
 public:
+
   virtual ~Bot() = default;
 
   /**
@@ -84,9 +123,12 @@ public:
    */
   virtual void enterMove(Move_t) = 0;
 
-  virtual bool partyEnded() = 0;
+  /**
+   * @brief 
+   */
+  virtual bool partyEnded(End_t&) = 0;
 
-  virtual bool getCell(Column_t, Row_t, Piece_t&, Color_t&) = 0;
+  virtual bool getCell(File_t, Rank_t, Piece_t&, Color_t&) = 0;
 
   static void moveStr(chess::Move_t move, char *str)
   {

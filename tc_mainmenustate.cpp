@@ -59,7 +59,7 @@ State_t MainMenu::step(unsigned current_time)
   if (this->__noSpiffsConf)
     return State_t::CALIBRATION;
   int16_t x,y;
-  if (getTouch(x, y)) {
+  if (this->_getTouch(x, y)) {
     if (y>100 && y<130) {
       _tft->drawRect(11, 101, 218, 28, TFT_BLUE);
       delay(300);

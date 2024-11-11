@@ -8,9 +8,11 @@ For a copy, see LICENSE file.
 /**
  * @file esp32_touch_chess
  * @brief Main source file for an Arduino IDE
+ * 
+ * Initialization of the libraries and HW
  */
 
-#include "us.hpp"
+//#include "us.hpp"
 #include <TFT_eSPI.h>
 #include <SPI.h>
 
@@ -65,6 +67,7 @@ static touch_chess::State_t _previousStateType = touch_chess::State_t::S_EMPTY;
 // Calibration of the screen state object
 static touch_chess::CalibrateState _cal_state;
 
+// Main chess game state
 static touch_chess::ChessGame _chess_game_state;
 
 
@@ -114,7 +117,7 @@ public:
   {
     delay(200);
     int16_t x,y;
-    if (getTouch(x, y)) {
+    if (this->_getTouch(x, y)) {
       // Start game button
       if (y>290 && y<310) {
         _chess_game_state.setPlayer(
@@ -150,13 +153,20 @@ private:
   bool __playersHumanFlag[2];
 };
 
+// Game setup state object
 static GameSetup _game_setup_state;
+
+// Main menu state object
 static touch_chess::MainMenu _main_menu_state;
 
-
+/**
+ * @brief Standart Arduino platform setup function
+ */
 void setup()
 {
 #ifndef RED_DISPLAY
+  // On "yellow" boards with separate SPI for TFT and Touchscreen
+  // separate SPI-object for vspi interface, used by the touchscreen
   vspi = new SPIClass(VSPI);
   vspi->begin(TS_CLK, TS_OUT, TS_IN, TS_CS);
 #endif
@@ -177,7 +187,11 @@ void setup()
 #endif
   _tscreen->setRotation(2);
   delay(300);
+
+  // Initialize debug serial interface
   Serial.begin(115200);
+
+  // Initialize SPFFS file system
   if (!SPIFFS.begin(true)) {
     perror("SPIFFS error");
     exit(1);
@@ -185,7 +199,9 @@ void setup()
   puts("SPIFFS initialized");
 }
 
+// Main loop function, used by the Arduino platform
 void loop() {
+  // If the state was changed, do initialization ad change work
   if (_currentStateType != _previousStateType) {
     _previousStateType = _currentStateType;
     if (_currentStateType == touch_chess::State_t::MAIN_MENU) {

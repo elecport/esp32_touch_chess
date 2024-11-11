@@ -39,11 +39,11 @@ private:
   {
     chess::Move_t res;
 
-    res.from.col = chess::Column_t(uint8_t(getFile(getFrom(move))-'a'));
-    res.from.row = chess::Row_t(uint8_t(getRank(getFrom(move))-'1'));
+    res.from.col = chess::File_t(uint8_t(getFile(getFrom(move))-'a'));
+    res.from.row = chess::Rank_t(uint8_t(getRank(getFrom(move))-'1'));
 
-    res.to.col = chess::Column_t(uint8_t(getFile(getTo(move))-'a'));
-    res.to.row = chess::Row_t(uint8_t(getRank(getTo(move))-'1'));
+    res.to.col = chess::File_t(uint8_t(getFile(getTo(move))-'a'));
+    res.to.row = chess::Rank_t(uint8_t(getRank(getTo(move))-'1'));
 
     return res;
   }
@@ -85,13 +85,23 @@ public:
     makeMove(&__game, m);
   }
 
-  bool partyEnded() override
+  bool partyEnded(chess::End_t& result) override
   {
-    return hasGameEnded(&__game.position);
+    bool res = hasGameEnded(&__game.position);
+    if (isCheckmate(&__game.position)) {
+       result = chess::End_t::CHECKMATE;
+    } else if (isStalemate(&__game.position)) {
+        result = chess::End_t::STALLMATE;
+    } else if (hasInsufficientMaterial(&__game.position.board)) {
+        result = chess::End_t::INSUFFICIENT_MAT;
+    } else if (isOver75MovesRule(&__game.position)) {
+       result = chess::End_t::MOVES_EXPIRED;
+    }
+    return res;
   }
 
   bool getCell(
-    chess::Column_t col, chess::Row_t row, chess::Piece_t& p, chess::Color_t& c
+    chess::File_t col, chess::Rank_t row, chess::Piece_t& p, chess::Color_t& c
   ) override
   {
     char _c = getPieceChar(

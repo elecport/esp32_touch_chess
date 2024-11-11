@@ -373,12 +373,3 @@ Node idabThreaded(Position * position, int depth, BOOL verbose);
 Node idabThreadedBestFirst(Position * position, int depth, BOOL verbose);
 Node idabThreadedBestFirstHashed(Position * position, int depth, BOOL verbose);
 #endif
-
-// ===== PLAY LOOP (TEXT) ====
-
-void playTextWhite(Game* game, int depth);
-void playTextBlack(int depth);
-void playTextAs(char color, int depth);
-void playTextRandomColor(int depth);
-
-// ===========================

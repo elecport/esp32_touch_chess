@@ -32,7 +32,7 @@ State::State()
   __lastTouched = millis();
 }
 
-bool State::getTouch(int16_t &x, int16_t &y)
+bool State::_getTouch(int16_t &x, int16_t &y)
 {
   unsigned t = millis();
   if (_tscreen->touched()) {
