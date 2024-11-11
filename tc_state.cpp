@@ -51,4 +51,22 @@ bool State::_getTouch(int16_t &x, int16_t &y)
   return false;
 }
 
+void State::_messageBox(const char* text)
+{
+  _tft->fillRoundRect(20, 50, 200, 50, 3, TFT_RED);
+  _tft->drawRoundRect(20, 50, 200, 50, 3, TFT_WHITE);
+  _tft->setCursor(25, 55);
+  _tft->print(text);
+  _tft->drawRoundRect(40, 80, 160, 15, 3, TFT_WHITE);
+  _tft->setCursor(100, 80);
+  _tft->print("OK");
+  while (true) {
+    int16_t x, y;
+    if (this->_getTouch(x, y)) {
+      if (x>40 && x<200 && y>80 && y<95)
+        break;
+    }
+  }
+}
+
 } // touch_schess

@@ -70,16 +70,39 @@ public:
   static unsigned _level;
 };
 
+/**
+ * @brief Abstract class of the state objects
+ * 
+ * has "enter" callback and step signal callback
+ */
 class State
 {
 public:
+
   State();
   virtual ~State() = default;
 
+  /**
+   * @brief Enter state callback
+   */
   virtual void enter() = 0;
+
+  /**
+   * @brief Staep signal callback
+   * @param dt -- milliseconds, passed since last step
+   */
   virtual State_t step(unsigned) = 0;
+
 protected:
+  /**
+   * @brief Get last touch event
+   * @param x [out] -- x-coordinate of the touch
+   * @param y [put] -- y-coordinate of the touch
+   * @return true if touch occured, otherwise - false
+   */
   bool _getTouch(int16_t &x, int16_t &y);
+
+  void _messageBox(const char*);
 private:
   unsigned __lastTouched;
 };

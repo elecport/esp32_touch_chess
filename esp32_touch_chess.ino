@@ -20,7 +20,7 @@ For a copy, see LICENSE file.
 // based on the "red-board" SPI-tft screens with SPI resistive touch
 // screen and SPI SD card reader
 
-//#define RED_DISPLAY
+#define RED_DISPLAY
 
 #include <SPIFFS.h>
 #include "fastchess.hpp"
@@ -30,6 +30,7 @@ For a copy, see LICENSE file.
 #include "tc_mainmenustate.hpp"
 #include "tc_calibrationstate.hpp"
 #include "tc_gamestate.hpp"
+#include "tc_gamesetupstate.hpp"
 
 #ifdef RED_DISPLAY
 
@@ -70,91 +71,8 @@ static touch_chess::CalibrateState _cal_state;
 // Main chess game state
 static touch_chess::ChessGame _chess_game_state;
 
-
-class GameSetup: public touch_chess::State
-{
-public:
-
-  GameSetup(): __playersHumanFlag{false, false}
-  {
-  }
-
-  ~GameSetup() = default;
-
-  // Interface of the State
-  void enter() override
-  {
-    _tft->fillScreen(RGB565_DARKERGREY);
-
-    _tft->setCursor(35, 20, 2);
-    _tft->print("White:");
-
-    _tft->drawRoundRect(10, 40, 220, 25, 3, TFT_WHITE);
-    _tft->setCursor(15, 45);
-    _tft->print("<");
-    _tft->setCursor(215, 45);
-    _tft->print(">");
-    _tft->setCursor(40, 45);
-    _tft->print("fastchess");
-
-    _tft->setCursor(35, 100);
-    _tft->print("Black:");
-
-    _tft->drawRoundRect(10, 120, 220, 25, 3, TFT_WHITE);
-    _tft->setCursor(15, 125);
-    _tft->print("<");
-    _tft->setCursor(215, 125);
-    _tft->print(">");
-    _tft->setCursor(40, 125);
-    _tft->print("fastchess");
-
-    _tft->drawRect(10, 285, 220, 30, TFT_WHITE);
-    _tft->setCursor(60, 300);
-    _tft->print("Start game");
-  }
-
-  touch_chess::State_t step(unsigned current_time) override
-  {
-    delay(200);
-    int16_t x,y;
-    if (this->_getTouch(x, y)) {
-      // Start game button
-      if (y>290 && y<310) {
-        _chess_game_state.setPlayer(
-          chess::Color_t::C_WHITE,
-          __playersHumanFlag[size_t(chess::Color_t::C_WHITE)]? touch_chess::PlayerClass_t::HUMAN: touch_chess::PlayerClass_t::FASTCHESS_1
-        );
-        _chess_game_state.setPlayer(
-          chess::Color_t::C_BLACK,
-          __playersHumanFlag[size_t(chess::Color_t::C_BLACK)]? touch_chess::PlayerClass_t::HUMAN: touch_chess::PlayerClass_t::FASTCHESS_1
-        );
-        return touch_chess::State_t::CHESS_GAME;
-      } else if (y>40 && y<65) {
-        _tft->fillRect(50, 41, 150, 23, RGB565_DARKERGREY);
-        _tft->setCursor(40, 45);
-        __playersHumanFlag[size_t(chess::Color_t::C_WHITE)] = !__playersHumanFlag[size_t(chess::Color_t::C_WHITE)];
-        if (__playersHumanFlag[size_t(chess::Color_t::C_WHITE)])
-          _tft->print("human");
-        else
-          _tft->print("fastchess");
-      } else if (y>120 && y<145) {
-        _tft->fillRect(50, 121, 150, 23, TFT_BLACK);
-        _tft->setCursor(40, 130);
-        __playersHumanFlag[size_t(chess::Color_t::C_BLACK)] = !__playersHumanFlag[size_t(chess::Color_t::C_BLACK)];
-        if (__playersHumanFlag[size_t(chess::Color_t::C_BLACK)])
-          _tft->print("human");
-        else
-          _tft->print("fastchess");
-      }
-    }
-    return touch_chess::State_t::GAME_SETUP;
-  }
-private:
-  bool __playersHumanFlag[2];
-};
-
 // Game setup state object
-static GameSetup _game_setup_state;
+static touch_chess::GameSetup _game_setup_state(_chess_game_state);
 
 // Main menu state object
 static touch_chess::MainMenu _main_menu_state;

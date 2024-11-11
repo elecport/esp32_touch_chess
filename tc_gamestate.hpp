@@ -11,9 +11,6 @@ For a copy, see LICENSE file.
 #include "chess.hpp"
 #include "fastchess.hpp"
 
-// Size of the chess board cell in pixels
-#define BCELL_SIZE 27
-
 namespace touch_chess
 {
 

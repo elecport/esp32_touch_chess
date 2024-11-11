@@ -7,6 +7,11 @@ For a copy, see LICENSE file.
 
 #include "tc_gamestate.hpp"
 
+// Size of the chess board cell in pixels
+#define BCELL_SIZE 27
+// BoardPosition
+#define BOARD_POSITION_TOP 30
+
 namespace touch_chess
 {
 
@@ -49,7 +54,7 @@ void ChessGame::enter()
 
 State_t ChessGame::step(unsigned current_time)
 {
-  _tft->fillScreen(TFT_BLACK);
+  _tft->fillRect(0, 0, 240, 240+BOARD_POSITION_TOP, TFT_BLACK);
   drawBoard();
   drawFigures();
 
@@ -65,10 +70,7 @@ State_t ChessGame::step(unsigned current_time)
     while (true) {
       mov = __getMove();
       if (!__chessParty->isMoveValid(mov)) {
-        _tft->fillRect(50,100, 140, 50, TFT_RED);
-        _tft->setCursor(75, 110, TFT_YELLOW);
-        _tft->print("Bad move!");
-        delay(1000);
+        this->_messageBox("Bad move!");
         drawBoard();
         drawFigures();
       } else
@@ -101,7 +103,7 @@ State_t ChessGame::step(unsigned current_time)
   _tft->setCursor(10, 280);
   _tft->setTextColor(RGB565_IVORY);
 
-  if (__color == chess::Color_t::C_WHITE)
+  if (__color == chess::Color_t::C_BLACK)
     _tft->print("White: ");
   else
     _tft->print("Black: ");
@@ -113,10 +115,19 @@ State_t ChessGame::step(unsigned current_time)
   _tft->print(mstr);
   chess::End_t endgame;
   bool party_cnt = __chessParty->partyEnded(endgame);
-
   if (party_cnt) {
     delete __chessParty;
     __chessParty = nullptr;
+    if (endgame == chess::End_t::CHECKMATE) {
+      char msg[64] = "Checkmate!       wins!";
+      if (__color == chess::Color_t::C_BLACK)
+        strcpy(msg+11, "Black");
+      else
+        strcpy(msg+11, "White");
+      this->_messageBox(msg);
+    } else if (endgame == chess::End_t::STALLMATE) {
+      this->_messageBox("Stallmate! Draw");
+    }
     return touch_chess::State_t::MAIN_MENU;
   }
 
@@ -147,8 +158,8 @@ void ChessGame::drawBoard()
       _tft->fillRect(12+j*BCELL_SIZE, 42+i*BCELL_SIZE, BCELL_SIZE, BCELL_SIZE, flag?__gfx_colors[0]:__gfx_colors[1]);
     }
   }
-  _tft->drawRect(0,30, 240, 240, __gfx_colors[0]);
-  _tft->drawRect(12,43, 216, 216, __gfx_colors[0]);
+  _tft->drawRect(0, BOARD_POSITION_TOP, 240, 240, __gfx_colors[0]);
+  _tft->drawRect(12, BOARD_POSITION_TOP+12, 216, 216, __gfx_colors[0]);
 }
 
 void ChessGame::drawFigures()
