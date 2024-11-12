@@ -18,8 +18,23 @@ namespace touch_chess
 ChessGame::ChessGame():
 __players{nullptr, nullptr},
 __chessParty(nullptr),
-__gfx_colors{RGB565_IVORY, RGB565_CHOCOLATE}
+__gfx_colors{RGB565_IVORY, RGB565_CHOCOLATE},
+__moves(nullptr), __movesCount(0)
 {
+}
+
+void ChessGame::__addMove(chess::Move_t& move_obj)
+{
+  chess::Move_t* m = new chess::Move_t(move_obj);
+  if (this->__movesCount == 0) {
+    if (this->__moves != nullptr)
+      free(this->__moves);
+    this->__moves = (chess::Move_t**)malloc(sizeof(chess::Move_t*));
+  } else {
+      this->__moves = (chess::Move_t**)realloc(this->__moves, sizeof(chess::Move_t*)*(this->__movesCount+1));
+  }
+  this->__moves[this->__movesCount] = m;
+  this->__movesCount++;
 }
 
 void ChessGame::setPlayer(chess::Color_t color, PlayerClass_t player)
@@ -49,12 +64,15 @@ void ChessGame::enter()
   __chessParty = new ChessParty();
   __color = chess::Color_t::C_WHITE;
 
+  _tft->drawRoundRect(1,1, 30, 20, 2, TFT_WHITE);
+  _tft->setCursor(2, 2, 1);
+  _tft->print("Save");
   drawBoard();
 }
 
 State_t ChessGame::step(unsigned current_time)
 {
-  _tft->fillRect(0, 0, 240, 240+BOARD_POSITION_TOP, TFT_BLACK);
+  _tft->fillRect(0, 10, 240, 240+BOARD_POSITION_TOP, TFT_BLACK);
   drawBoard();
   drawFigures();
 
@@ -91,12 +109,13 @@ State_t ChessGame::step(unsigned current_time)
       Serial.println(params.percent, DEC);
       if (last_pc != params.percent) {
         last_pc = params.percent;
-        _tft->fillRect(5, 5, 230*last_pc/100, 5, TFT_BLUE);
+        _tft->fillRect(5, 10, 230*last_pc/100, 5, TFT_BLUE);
       }
       delay(300);
     }
     mov = params.mov;
   }
+  this->__addMove(mov);
   __color = chess::Color_t(1-uint8_t(__color));
 
   _tft->fillRect(0, 270, 240, 50, TFT_BLACK);

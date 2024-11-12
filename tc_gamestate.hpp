@@ -91,11 +91,21 @@ private:
 
   chess::Move_t __getMove();
 
+  void __addMove(chess::Move_t&);
+
   Player* __players[2];
+
   ChessParty* __chessParty;
+
   chess::Color_t __color;
+
   chess::Move_t __lastMove;
+
   uint16_t __gfx_colors[2];
+
+  chess::Move_t** __moves;
+
+  size_t __movesCount;
 };
 
 } // namespace touch_chess
