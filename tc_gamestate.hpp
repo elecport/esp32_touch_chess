@@ -102,7 +102,7 @@ private:
   chess::Move_t __lastMove;
 
   uint16_t __gfx_colors[2];
-
+  // Moves list
   chess::Move_t** __moves;
 
   size_t __movesCount;

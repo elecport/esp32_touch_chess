@@ -8,10 +8,17 @@ For a copy, see LICENSE file.
 #include <SPIFFS.h>
 
 #include "tc_mainmenustate.hpp"
+#include "Free_Fonts.h"
 
 #define SCROLL_STEP_X 1
 #define SCROLL_STEP_Y 2
 #define CELL_SIZE 32
+
+#define NEW_GAME_POS 60
+#define LOAD_GAME_POS 100
+#define SETTINGS_POS 140
+#define CALIBRATION_POS 180
+#define BUTTON_HEIGHT 30
 
 namespace touch_chess
 {
@@ -43,15 +50,27 @@ void MainMenu::enter()
 
 void MainMenu::__drawButtons()
 {
-  _tft->fillRoundRect(10, 60, 220, 30, 3, TFT_NAVY);
-  _tft->drawRoundRect(10, 60, 220, 30, 3, TFT_LIGHTGREY);
-  _tft->setCursor(20, 70, 2);
-  _tft->print("   PLAY CHESS");
+  _tft->setFreeFont(FSSO9);
+  
+  _tft->fillRoundRect(10, NEW_GAME_POS, 220, BUTTON_HEIGHT, 3, TFT_NAVY);
+  _tft->drawRoundRect(10, NEW_GAME_POS, 220, BUTTON_HEIGHT, 3, TFT_LIGHTGREY);
+  _tft->setCursor(20, NEW_GAME_POS+20);
+  _tft->print("NEW GAME");
 
-  _tft->fillRoundRect(10, 100, 220, 30, 3, TFT_NAVY);
-  _tft->drawRoundRect(10, 100, 220, 30, 3, TFT_LIGHTGREY);
-  _tft->setCursor(20, 110);
-  _tft->print("  CALIBRATION");
+  _tft->fillRoundRect(10, LOAD_GAME_POS, 220, BUTTON_HEIGHT, 3, TFT_NAVY);
+  _tft->drawRoundRect(10, LOAD_GAME_POS, 220, BUTTON_HEIGHT, 3, TFT_LIGHTGREY);
+  _tft->setCursor(20, LOAD_GAME_POS+20);
+  _tft->print("LOAD GAME");
+
+  _tft->fillRoundRect(10, SETTINGS_POS, 220, BUTTON_HEIGHT, 3, TFT_NAVY);
+  _tft->drawRoundRect(10, SETTINGS_POS, 220, BUTTON_HEIGHT, 3, TFT_LIGHTGREY);
+  _tft->setCursor(20, SETTINGS_POS+20);
+  _tft->print("SETTINGS");
+
+  _tft->fillRoundRect(10, CALIBRATION_POS, 220, BUTTON_HEIGHT, 3, TFT_NAVY);
+  _tft->drawRoundRect(10, CALIBRATION_POS, 220, BUTTON_HEIGHT, 3, TFT_LIGHTGREY);
+  _tft->setCursor(20, CALIBRATION_POS+20);
+  _tft->print("CALIBRATION");
 }
 
 State_t MainMenu::step(unsigned current_time)
@@ -61,11 +80,11 @@ State_t MainMenu::step(unsigned current_time)
   int16_t x,y;
   if (this->_getTouch(x, y)) {
     if (y>100 && y<130) {
-      _tft->drawRect(11, 101, 218, 28, TFT_BLUE);
+      _tft->drawRect(11, CALIBRATION_POS+1, 218, BUTTON_HEIGHT-2, TFT_BLUE);
       delay(300);
       return State_t::CALIBRATION;
-    } else if (y>60 && y<90) {
-      _tft->drawRect(11, 61, 218, 28, TFT_BLUE);
+    } else if (y>NEW_GAME_POS && y<90) {
+      _tft->drawRect(11, NEW_GAME_POS+1, 218, BUTTON_HEIGHT-2, TFT_BLUE);
       delay(300);
       return State_t::GAME_SETUP;
     }
