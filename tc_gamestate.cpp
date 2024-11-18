@@ -64,15 +64,15 @@ void ChessGame::enter()
   __chessParty = new ChessParty();
   __color = chess::Color_t::C_WHITE;
 
-  _tft->drawRoundRect(1,1, 30, 20, 2, TFT_WHITE);
-  _tft->setCursor(2, 2, 1);
+  _tft->drawRoundRect(1, 1, 40, 16, 3, TFT_WHITE);
+  _tft->setCursor(3, 2, 2);
   _tft->print("Save");
   drawBoard();
 }
 
 State_t ChessGame::step(unsigned current_time)
 {
-  _tft->fillRect(0, 10, 240, 240+BOARD_POSITION_TOP, TFT_BLACK);
+  _tft->fillRect(0, 20, 240, 240+BOARD_POSITION_TOP, TFT_BLACK);
   drawBoard();
   drawFigures();
 
@@ -104,12 +104,13 @@ State_t ChessGame::step(unsigned current_time)
     BaseType_t bt = xTaskCreatePinnedToCore(__aiMoveTask, nullptr, 8192, &params, 1, &th, 1);
     Serial.println("Task created");
     uint8_t last_pc = 0;
-    _tft->fillRect(5, 5, 230, 5, TFT_BLACK);
+    _tft->fillRect(0, 20, 230, 10, TFT_BLACK);
+    _tft->drawRect(4, 20, 232, 7, TFT_WHITE);
     while (!params.finished) {
       Serial.println(params.percent, DEC);
       if (last_pc != params.percent) {
         last_pc = params.percent;
-        _tft->fillRect(5, 10, 230*last_pc/100, 5, TFT_BLUE);
+        _tft->fillRect(5, 21, 230*last_pc/100, 5, TFT_BLUE);
       }
       delay(300);
     }
