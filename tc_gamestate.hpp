@@ -75,6 +75,7 @@ public:
   State_t step(unsigned current_time) override;
 
 private:
+
   struct task_parameters_t
   {
     uint8_t percent;
@@ -84,6 +85,8 @@ private:
   };
 
   static void __aiMoveTask(void* p);
+
+  uint8_t _getSaveSlot();
 
   void drawBoard();
 
