@@ -79,7 +79,7 @@ State_t MainMenu::step(unsigned current_time)
     return State_t::CALIBRATION;
   int16_t x,y;
   if (this->_getTouch(x, y)) {
-    if (y>100 && y<130) {
+    if (y>CALIBRATION_POS && y<CALIBRATION_POS+BUTTON_HEIGHT) {
       _tft->drawRect(11, CALIBRATION_POS+1, 218, BUTTON_HEIGHT-2, TFT_BLUE);
       delay(300);
       return State_t::CALIBRATION;

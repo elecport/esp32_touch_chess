@@ -6,6 +6,7 @@ For a copy, see LICENSE file.
 */
 
 #include "tc_gamestate.hpp"
+#include <SPIFFS.h>
 
 // Size of the chess board cell in pixels
 #define BCELL_SIZE 27
@@ -68,6 +69,11 @@ void ChessGame::enter()
   _tft->setCursor(3, 2, 2);
   _tft->print("Save");
   drawBoard();
+}
+
+uint8_t ChessGame::_getSaveSlot()
+{
+  return 0;
 }
 
 State_t ChessGame::step(unsigned current_time)
@@ -245,6 +251,26 @@ chess::Move_t ChessGame::__getMove()
             drawFigures();
             _tft->drawRect(12+BCELL_SIZE*file_from+1, 42+(7-rank_from)*BCELL_SIZE+1, 25, 25, TFT_BLUE);
             break;
+          }
+        }
+      } else {
+        // CHeck menu buttons press
+        if (p.x<40 && p.y < 20) {
+          uint8_t slot = this->_getSaveSlot();
+          if (slot >= 0) {
+            char fname[] = "/save_";
+            fname[5] = slot+'1';
+            fs::File f = SPIFFS.open(fname, "w");
+            printf("Open save file %s\n", fname);
+            for (size_t i=0; i<__movesCount; ++i) {
+              chess::Move_t m = *this->__moves[i];
+              char ms[5] = "    ";
+              chess::Bot::moveStr(m, ms);
+              f.println(ms);
+              puts(ms);
+            }
+            f.close();
+            printf("Close save file %s\n", fname);
           }
         }
       }
