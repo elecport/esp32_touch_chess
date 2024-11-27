@@ -99,7 +99,7 @@ State_t ChessGame::step(unsigned current_time)
         drawFigures();
       } else
         break;
-    };
+    }
     __chessParty->enterMove(mov);
   } else {
     TaskHandle_t th;
@@ -254,8 +254,8 @@ chess::Move_t ChessGame::__getMove()
           }
         }
       } else {
-        // CHeck menu buttons press
-        if (p.x<40 && p.y < 20) {
+        // Check menu buttons press
+        if (p.x<40 && p.y<20) {
           uint8_t slot = this->_getSaveSlot();
           if (slot >= 0) {
             char fname[] = "/save_";

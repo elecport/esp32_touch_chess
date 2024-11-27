@@ -31,6 +31,7 @@ For a copy, see LICENSE file.
 #include "tc_calibrationstate.hpp"
 #include "tc_gamestate.hpp"
 #include "tc_gamesetupstate.hpp"
+#include "tc_settingsstate.hpp"
 
 #ifdef RED_DISPLAY
 
@@ -76,6 +77,9 @@ static touch_chess::GameSetup _game_setup_state(_chess_game_state);
 
 // Main menu state object
 static touch_chess::MainMenu _main_menu_state;
+
+// Settings state
+static touch_chess::Settings __settings_state;
 
 /**
  * @brief Standart Arduino platform setup function
@@ -131,6 +135,8 @@ void loop() {
       _currentState = &_chess_game_state;
     } else if (_currentStateType == touch_chess::State_t::GAME_SETUP) {
       _currentState = &_game_setup_state;
+    } else if (_currentStateType == touch_chess::State_t::SETTINGS) {
+      _currentState = &__settings_state;
     }
     _currentState->enter();
   }

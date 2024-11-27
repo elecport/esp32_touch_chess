@@ -42,6 +42,7 @@ enum class State_t
   CALIBRATION,
   TEST_CALIBRATION,
   MAIN_MENU,
+  SETTINGS,
   GAME_SETUP,
   CHESS_GAME
 };
