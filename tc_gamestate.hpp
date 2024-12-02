@@ -68,7 +68,20 @@ public:
 
   ChessGame();
 
-  void setPlayer(chess::Color_t color, PlayerClass_t player);
+  /**
+   * @brief Set player for given color: human, bot, etc.
+   * 
+   * @param color
+   * @param player
+   */
+  void setPlayer(chess::Color_t, PlayerClass_t);
+
+  /**
+   * @brief Load game from file
+   * 
+   * @param save file
+   */
+  void loadGame(const char*);
 
   void enter() override;
 
@@ -84,9 +97,11 @@ private:
     bool finished;
   };
 
+  const char* __file2load;
+
   static void __aiMoveTask(void* p);
 
-  uint8_t _getSaveSlot();
+  int8_t _getSaveSlot();
 
   void drawBoard();
 

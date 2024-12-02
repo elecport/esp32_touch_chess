@@ -104,6 +104,9 @@ protected:
   bool _getTouch(int16_t &x, int16_t &y);
 
   void _messageBox(const char*);
+
+  int _questionBox(const char*, const char**, size_t);
+
 private:
   unsigned __lastTouched;
 };

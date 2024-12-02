@@ -20,7 +20,8 @@ ChessGame::ChessGame():
 __players{nullptr, nullptr},
 __chessParty(nullptr),
 __gfx_colors{RGB565_IVORY, RGB565_CHOCOLATE},
-__moves(nullptr), __movesCount(0)
+__moves(nullptr), __movesCount(0),
+__file2load(nullptr)
 {
 }
 
@@ -65,15 +66,29 @@ void ChessGame::enter()
   __chessParty = new ChessParty();
   __color = chess::Color_t::C_WHITE;
 
+  if (__file2load) {
+     fs::File f = SPIFFS.open(__file2load, "r");
+     printf("Open save file %s\n", __file2load);
+     while (f) {
+      
+     }
+     f.close();
+  }
+
   _tft->drawRoundRect(1, 1, 40, 16, 3, TFT_WHITE);
   _tft->setCursor(3, 2, 2);
   _tft->print("Save");
   drawBoard();
 }
 
-uint8_t ChessGame::_getSaveSlot()
+int8_t ChessGame::_getSaveSlot()
 {
-  return 0;
+  static const char title[] = "Select save slot to load";
+  static const char *slotNames[] = {
+    "game_1", "game_2", "game_3", "game_4"
+  };
+  int slotIndex = this->_questionBox(title, slotNames, 4);
+  return slotIndex;
 }
 
 State_t ChessGame::step(unsigned current_time)
@@ -256,7 +271,7 @@ chess::Move_t ChessGame::__getMove()
       } else {
         // Check menu buttons press
         if (p.x<40 && p.y<20) {
-          uint8_t slot = this->_getSaveSlot();
+          int8_t slot = this->_getSaveSlot();
           if (slot >= 0) {
             char fname[] = "/save_";
             fname[5] = slot+'1';

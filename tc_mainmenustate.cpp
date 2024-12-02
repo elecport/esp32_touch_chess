@@ -77,10 +77,19 @@ State_t MainMenu::step(unsigned current_time)
       _tft->drawRect(11, SETTINGS_POS+1, 218, BUTTON_HEIGHT-2, TFT_BLUE);
       delay(300);
       return State_t::SETTINGS;
-    } else if (y>NEW_GAME_POS && y<90) {
+    } else if (y>NEW_GAME_POS && y<NEW_GAME_POS+BUTTON_HEIGHT) {
       _tft->drawRect(11, NEW_GAME_POS+1, 218, BUTTON_HEIGHT-2, TFT_BLUE);
       delay(300);
       return State_t::GAME_SETUP;
+    } else if (y>LOAD_GAME_POS && y<LOAD_GAME_POS+BUTTON_HEIGHT) {
+      static const char title[] = "Select save slot to load";
+      static const char *slotNames[] = {
+        "game_1", "game_2", "game_3", "game_4"
+      };
+      int slotIndex = this->_questionBox(title, slotNames, 4);
+      if (slotIndex > 0) {
+       
+      }
     }
   }
   delay(200);
