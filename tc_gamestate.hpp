@@ -83,10 +83,6 @@ public:
    */
   void loadGame(const char*);
 
-  void enter() override;
-
-  State_t step(unsigned current_time) override;
-
 private:
 
   struct task_parameters_t
@@ -103,15 +99,31 @@ private:
 
   int8_t _getSaveSlot();
 
-  void drawBoard();
+  /**
+   * @brief Redraw empty board
+   */
+  void __drawBoard();
 
-  void drawFigures();
+  /**
+   * @brief Draw current figures set
+   */
+  void __drawFigures();
 
+  /**
+   * #brief Get human player move through touch
+   */
   chess::Move_t __getMove();
+
+  /**
+   * @brief Read possible menu buttons presses
+   */
+  void __getMenuPress();
 
   void __addMove(chess::Move_t&);
 
   Player* __players[2];
+
+  PlayerClass_t __player_classes[2];
 
   ChessParty* __chessParty;
 
@@ -124,6 +136,13 @@ private:
   chess::Move_t** __moves;
 
   size_t __movesCount;
+
+// State interface
+public:
+
+  void enter() override;
+
+  State_t step(unsigned current_time) override;
 };
 
 } // namespace touch_chess

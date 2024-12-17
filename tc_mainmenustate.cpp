@@ -47,6 +47,21 @@ void MainMenu::enter()
   __drawButtons();
 }
 
+void MainMenu::__loadGame()
+{
+  static const char title[] = "Select save slot to load";
+  static const char *slotNames[] = {
+    "game_1", "game_2", "game_3", "game_4"
+  };
+  int slotIndex = this->_questionBox(title, slotNames, 4);
+  if (slotIndex > 0) {
+    char fname[] = "/save_";
+    fname[5] = slot+'1';
+    fs::File f = SPIFFS.open(fname, "r");
+    
+  }
+}
+
 void MainMenu::__drawButtons()
 {
   _tft->setFreeFont(FSSO9);
@@ -82,14 +97,7 @@ State_t MainMenu::step(unsigned current_time)
       delay(300);
       return State_t::GAME_SETUP;
     } else if (y>LOAD_GAME_POS && y<LOAD_GAME_POS+BUTTON_HEIGHT) {
-      static const char title[] = "Select save slot to load";
-      static const char *slotNames[] = {
-        "game_1", "game_2", "game_3", "game_4"
-      };
-      int slotIndex = this->_questionBox(title, slotNames, 4);
-      if (slotIndex > 0) {
-       
-      }
+      this->__loadGame();
     }
   }
   delay(200);
