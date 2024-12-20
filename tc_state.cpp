@@ -34,7 +34,7 @@ State::State()
 
 bool State::_getTouch(int16_t &x, int16_t &y)
 {
-  unsigned t = millis();
+  /*unsigned t = millis();
   if (_tscreen->touched()) {
     if ((t-__lastTouched) < 300) {
       __lastTouched = t;
@@ -48,7 +48,11 @@ bool State::_getTouch(int16_t &x, int16_t &y)
 
     return true;
   }
-  return false;
+  return false;*/
+  uint16_t xx, yy;
+  bool res = bool(_tft->getTouch(&xx, &yy));
+  x=xx; y=yy;
+  return res;
 }
 
 void State::_messageBox(const char* text)

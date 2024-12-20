@@ -20,7 +20,8 @@ For a copy, see LICENSE file.
 // based on the "red-board" SPI-tft screens with SPI resistive touch
 // screen and SPI SD card reader
 
-#define RED_DISPLAY
+//#define RED_DISPLAY
+#define YELLOW_24
 
 #include <SPIFFS.h>
 #include "fastchess.hpp"
@@ -37,6 +38,15 @@ For a copy, see LICENSE file.
 
 #define TS_CS 22
 
+#elifdef YELLOW_24
+
+#define TS_CS 33
+#define TS_OUT 12
+#define TS_IN  13
+#define TS_CLK 14
+
+static SPIClass *hspi;
+
 #else
 
 #define TFT_DC 2
@@ -50,7 +60,6 @@ For a copy, see LICENSE file.
 
 // VSPI object
 static SPIClass *vspi;
-
 #endif
 
 // global tft-interface object
@@ -86,7 +95,11 @@ static touch_chess::Settings __settings_state;
  */
 void setup()
 {
-#ifndef RED_DISPLAY
+#ifdef RED_DISPLAY
+#elifdef YELLOW_24
+  //hspi = new SPIClass(HSPI);
+  //hspi->begin(TS_CLK, TS_OUT, TS_IN, TS_CS);
+#else
   // On "yellow" boards with separate SPI for TFT and Touchscreen
   // separate SPI-object for vspi interface, used by the touchscreen
   vspi = new SPIClass(VSPI);
@@ -97,15 +110,20 @@ void setup()
   _tft = new TFT_eSPI();
 
   _tft->init();
+  static uint16_t calData[5] = { 405, 3238, 287, 3292, 2  };
+  _tft->calibrateTouch(calData, TFT_WHITE, TFT_BLACK, 10);
+  _tft->setTouch(calData);
   _tft->fillScreen(TFT_BLUE);
 #ifndef RED_DISPLAY
   _tft->invertDisplay(true);
 #endif
 
-#ifndef RED_DISPLAY
-  _tscreen->begin(*vspi);
-#else
+#ifdef RED_DISPLAY
   _tscreen->begin();
+#elifdef YELLOW_24
+  //_tscreen->begin(*hspi);
+#else
+  _tscreen->begin(*vspi);
 #endif
   _tscreen->setRotation(2);
   delay(300);

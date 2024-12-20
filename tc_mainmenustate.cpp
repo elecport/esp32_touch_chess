@@ -71,6 +71,7 @@ State_t MainMenu::step(unsigned current_time)
 {
   if (this->__noSpiffsConf)
     return State_t::CALIBRATION;
+  delay(1);
   int16_t x,y;
   if (this->_getTouch(x, y)) {
     if (y>SETTINGS_POS && y<SETTINGS_POS+BUTTON_HEIGHT) {
