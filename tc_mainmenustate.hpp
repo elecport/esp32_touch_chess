@@ -26,6 +26,7 @@ public:
 
 private:
   void __drawButtons();
+  void __loadGame();
   int8_t __step = 0;
   bool __noSpiffsConf = true;
 };

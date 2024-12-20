@@ -73,4 +73,36 @@ void State::_messageBox(const char* text)
   }
 }
 
+#define ITEM_STEP 30
+#define ITEM_MARGIN 20
+
+int State::_questionBox(
+  const char* title,
+  const char** items,
+  size_t numItems)
+{
+  size_t height = 30+numItems*ITEM_STEP;
+
+  _tft->fillRoundRect(10, 40, 220, height, 3, TFT_NAVY);
+  _tft->drawRoundRect(10, 40, 220, height, 3, TFT_WHITE);
+  _tft->setCursor(20, 45, 2);
+  _tft->print(title);
+  for (size_t i=0; i<numItems; ++i) {
+    _tft->drawRoundRect(ITEM_MARGIN, 40+30+i*ITEM_STEP, 240-2*ITEM_MARGIN, ITEM_STEP-5, 2, TFT_WHITE);
+    _tft->setCursor(ITEM_MARGIN+10, 40+30+i*ITEM_STEP);
+    _tft->print(items[i]);
+  }
+  int16_t x,y;
+  while (!this->_getTouch(x, y))
+    delay(100);
+  if (x>ITEM_MARGIN && x<240-ITEM_MARGIN) {
+    if (y>40+30 && y<40+30+ITEM_STEP*numItems) {
+      int index = (y-(40+30)) / ITEM_STEP;
+      Serial.println(index, DEC);
+      return index;
+    }
+  }
+  return -1;
+}
+
 } // touch_schess

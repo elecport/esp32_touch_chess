@@ -68,11 +68,20 @@ public:
 
   ChessGame();
 
-  void setPlayer(chess::Color_t color, PlayerClass_t player);
+  /**
+   * @brief Set player for given color: human, bot, etc.
+   * 
+   * @param color
+   * @param player
+   */
+  void setPlayer(chess::Color_t, PlayerClass_t);
 
-  void enter() override;
-
-  State_t step(unsigned current_time) override;
+  /**
+   * @brief Load game from file
+   * 
+   * @param save file
+   */
+  void loadGame(const char*);
 
 private:
 
@@ -84,19 +93,37 @@ private:
     bool finished;
   };
 
+  const char* __file2load;
+
   static void __aiMoveTask(void* p);
 
-  uint8_t _getSaveSlot();
+  int8_t _getSaveSlot();
 
-  void drawBoard();
+  /**
+   * @brief Redraw empty board
+   */
+  void __drawBoard();
 
-  void drawFigures();
+  /**
+   * @brief Draw current figures set
+   */
+  void __drawFigures();
 
+  /**
+   * #brief Get human player move through touch
+   */
   chess::Move_t __getMove();
+
+  /**
+   * @brief Read possible menu buttons presses
+   */
+  void __getMenuPress();
 
   void __addMove(chess::Move_t&);
 
   Player* __players[2];
+
+  PlayerClass_t __player_classes[2];
 
   ChessParty* __chessParty;
 
@@ -109,6 +136,13 @@ private:
   chess::Move_t** __moves;
 
   size_t __movesCount;
+
+// State interface
+public:
+
+  void enter() override;
+
+  State_t step(unsigned current_time) override;
 };
 
 } // namespace touch_chess

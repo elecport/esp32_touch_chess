@@ -20,7 +20,8 @@ ChessGame::ChessGame():
 __players{nullptr, nullptr},
 __chessParty(nullptr),
 __gfx_colors{RGB565_IVORY, RGB565_CHOCOLATE},
-__moves(nullptr), __movesCount(0)
+__moves(nullptr), __movesCount(0),
+__file2load(nullptr)
 {
 }
 
@@ -40,6 +41,7 @@ void ChessGame::__addMove(chess::Move_t& move_obj)
 
 void ChessGame::setPlayer(chess::Color_t color, PlayerClass_t player)
 {
+  this->__player_classes[size_t(color)] = player;
   if (__players[size_t(color)] != nullptr)
     delete __players[size_t(color)];
   if (player == PlayerClass_t::HUMAN)
@@ -65,22 +67,38 @@ void ChessGame::enter()
   __chessParty = new ChessParty();
   __color = chess::Color_t::C_WHITE;
 
+  if (__file2load) {
+     fs::File f = SPIFFS.open(__file2load, "r");
+     printf("Open save file %s\n", __file2load);
+     while (f) {
+      
+     }
+     f.close();
+  }
+
   _tft->drawRoundRect(1, 1, 40, 16, 3, TFT_WHITE);
   _tft->setCursor(3, 2, 2);
   _tft->print("Save");
-  drawBoard();
+  //this->__drawBoard();
 }
 
-uint8_t ChessGame::_getSaveSlot()
+int8_t ChessGame::_getSaveSlot()
 {
-  return 0;
+  static const char title[] = "Select save slot to load";
+  static const char *slotNames[] = {
+    "game_1", "game_2", "game_3", "game_4"
+  };
+  int slotIndex = this->_questionBox(title, slotNames, 4);
+  this->__drawBoard();
+  this->__drawFigures();
+  return slotIndex;
 }
 
 State_t ChessGame::step(unsigned current_time)
 {
-  _tft->fillRect(0, 20, 240, 240+BOARD_POSITION_TOP, TFT_BLACK);
-  drawBoard();
-  drawFigures();
+  _tft->fillRect(0, BOARD_POSITION_TOP, 240, 240, TFT_BROWN);
+  this->__drawBoard();
+  this->__drawFigures();
 
   _tft->setCursor(10, 300);
   _tft->setTextColor(TFT_WHITE);
@@ -95,8 +113,8 @@ State_t ChessGame::step(unsigned current_time)
       mov = __getMove();
       if (!__chessParty->isMoveValid(mov)) {
         this->_messageBox("Bad move!");
-        drawBoard();
-        drawFigures();
+        this->__drawBoard();
+        this->__drawFigures();
       } else
         break;
     }
@@ -118,6 +136,7 @@ State_t ChessGame::step(unsigned current_time)
         last_pc = params.percent;
         _tft->fillRect(5, 21, 230*last_pc/100, 5, TFT_BLUE);
       }
+      this->__getMenuPress();
       delay(300);
     }
     mov = params.mov;
@@ -125,20 +144,24 @@ State_t ChessGame::step(unsigned current_time)
   this->__addMove(mov);
   __color = chess::Color_t(1-uint8_t(__color));
 
-  _tft->fillRect(0, 270, 240, 50, TFT_BLACK);
-  _tft->setCursor(10, 280);
-  _tft->setTextColor(RGB565_IVORY);
-
-  if (__color == chess::Color_t::C_BLACK)
-    _tft->print("White: ");
-  else
-    _tft->print("Black: ");
-
   // Print last move
   char mstr[5];
+  char msg[12] = {0,0,0,0,0,0,0,0,0,0,0,0};
   chess::Bot::moveStr(mov, mstr);
   mstr[4] = '\0';
-  _tft->print(mstr);
+  if (__color == chess::Color_t::C_WHITE)
+        strcpy(msg, "Black: ");
+  else
+        strcpy(msg, "White: ");
+  strcpy(msg+7, mstr);
+  this->_messageBox(msg);
+
+  _tft->fillRect(0, 240+BOARD_POSITION_TOP, 240, 50, TFT_NAVY);
+  _tft->setCursor(10, 280);
+  _tft->setTextColor(RGB565_IVORY);
+  _tft->print(msg);
+  delay(300);
+
   chess::End_t endgame;
   bool party_cnt = __chessParty->partyEnded(endgame);
   if (party_cnt) {
@@ -160,6 +183,41 @@ State_t ChessGame::step(unsigned current_time)
   return touch_chess::State_t::CHESS_GAME;
 }
 
+void ChessGame::__getMenuPress()
+{
+  // Check menu buttons press
+
+  TS_Point p;
+  if (!this->_getTouch(p.x, p.y))
+    return;
+
+  if (p.x<40 && p.y<20) {
+    int8_t slot = this->_getSaveSlot();
+    if (slot >= 0) {
+      char fname[] = "/save_";
+      fname[5] = slot+'1';
+      fs::File f = SPIFFS.open(fname, "w");
+      printf("\nOpen save file %s\n", fname);
+      
+      f.println(size_t(this->__player_classes[0]), DEC);
+      printf("%d written\n", size_t(this->__player_classes[0]));
+
+      f.println(size_t(this->__player_classes[1]), DEC);
+      printf("%d written\n", size_t(this->__player_classes[1]));
+
+      for (size_t i=0; i<__movesCount; ++i) {
+        chess::Move_t m = *this->__moves[i];
+        char ms[5] = "    ";
+        chess::Bot::moveStr(m, ms);
+        f.println(ms);
+        printf("%s written\n", ms);
+      }
+      f.close();
+      printf("Close save file %s\n", fname);
+    }
+  }
+}
+
 void ChessGame::__aiMoveTask(void* p)
 {
   task_parameters_t* params = reinterpret_cast<task_parameters_t*>(p);
@@ -168,7 +226,7 @@ void ChessGame::__aiMoveTask(void* p)
   vTaskDelete(nullptr);
 }
 
-void ChessGame::drawBoard()
+void ChessGame::__drawBoard()
 {
   for (int i=0; i<8; ++i) {
     _tft->drawChar(22+BCELL_SIZE*i, 33, char('a'+i), __gfx_colors[0], __gfx_colors[1], 1);
@@ -188,7 +246,7 @@ void ChessGame::drawBoard()
   _tft->drawRect(12, BOARD_POSITION_TOP+12, 216, 216, __gfx_colors[0]);
 }
 
-void ChessGame::drawFigures()
+void ChessGame::__drawFigures()
 {
   char board[8][8];
   __chessParty->getBoard(board);
@@ -238,6 +296,7 @@ chess::Move_t ChessGame::__getMove()
   int file_to, rank_to;
   // Get first cell
   while (true) {
+    this->__getMenuPress();
     TS_Point p;
     if (this->_getTouch(p.x, p.y)) {
       file_from = (p.x - 12) / BCELL_SIZE;
@@ -247,30 +306,10 @@ chess::Move_t ChessGame::__getMove()
         if (__chessParty->getCell(chess::File_t(file_from), chess::Rank_t(7-rank_from), p, c)) {
           if (c == __color) {
             _tft->fillScreen(TFT_BLACK);
-            drawBoard();
-            drawFigures();
+            this->__drawBoard();
+            this->__drawFigures();
             _tft->drawRect(12+BCELL_SIZE*file_from+1, 42+(7-rank_from)*BCELL_SIZE+1, 25, 25, TFT_BLUE);
             break;
-          }
-        }
-      } else {
-        // Check menu buttons press
-        if (p.x<40 && p.y<20) {
-          uint8_t slot = this->_getSaveSlot();
-          if (slot >= 0) {
-            char fname[] = "/save_";
-            fname[5] = slot+'1';
-            fs::File f = SPIFFS.open(fname, "w");
-            printf("Open save file %s\n", fname);
-            for (size_t i=0; i<__movesCount; ++i) {
-              chess::Move_t m = *this->__moves[i];
-              char ms[5] = "    ";
-              chess::Bot::moveStr(m, ms);
-              f.println(ms);
-              puts(ms);
-            }
-            f.close();
-            printf("Close save file %s\n", fname);
           }
         }
       }
@@ -288,8 +327,8 @@ chess::Move_t ChessGame::__getMove()
         chess::Piece_t p; chess::Color_t c;
         bool isfig = __chessParty->getCell(chess::File_t(file_to), chess::Rank_t(7-rank_to), p, c);
           _tft->fillScreen(TFT_BLACK);
-          drawBoard();
-          drawFigures();
+          this->__drawBoard();
+          this->__drawFigures();
           _tft->drawRect(12+BCELL_SIZE*file_from+1, 42+(7-rank_from)*BCELL_SIZE+1, 25, 25, TFT_BLUE);
           _tft->drawRect(12+BCELL_SIZE*file_to+1, 42+(7-rank_to)*BCELL_SIZE+1, 25, 25, TFT_DARKGREEN);
           break;
