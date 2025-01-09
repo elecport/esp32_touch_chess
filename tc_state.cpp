@@ -34,25 +34,26 @@ State::State()
 
 bool State::_getTouch(int16_t &x, int16_t &y)
 {
-  /*unsigned t = millis();
-  if (_tscreen->touched()) {
+  unsigned t = millis();
+  bool res = false;
+  //res = _tscreen->touched();
+  uint16_t xx, yy;
+  res = bool(_tft->getTouch(&xx, &yy));
+  if (res) {
     if ((t-__lastTouched) < 300) {
       __lastTouched = t;
       return false;
     }
     __lastTouched = t;
-    TS_Point p = _tscreen->getPoint();
+    //TS_Point p = _tscreen->getPoint();
 
-    x = (p.x - ts_x0) / ts_dx + 5;
-    y = (p.y - ts_y0) / ts_dy + 5;
+    //x = (p.x - ts_x0) / ts_dx + 5;
+    //y = (p.y - ts_y0) / ts_dy + 5;
+    x=xx; y=yy;
 
     return true;
   }
-  return false;*/
-  uint16_t xx, yy;
-  bool res = bool(_tft->getTouch(&xx, &yy));
-  x=xx; y=yy;
-  return res;
+  return false;
 }
 
 void State::_messageBox(const char* text)

@@ -58,6 +58,11 @@ void ChessGame::setPlayer(chess::Color_t color, PlayerClass_t player)
   }
 }
 
+void ChessGame::loadGame(const char* path)
+{
+  this->__file2load = path;
+}
+
 void ChessGame::enter()
 {
   _tft->fillScreen(TFT_BLACK);
@@ -71,7 +76,10 @@ void ChessGame::enter()
      fs::File f = SPIFFS.open(__file2load, "r");
      printf("Open save file %s\n", __file2load);
      while (f) {
-      
+      char buf[32];
+      size_t rb = f.readBytesUntil('\n', buf, 31);
+      buf[rb] = '\0';
+      printf("Read %d bytes: %s\n", rb, buf);
      }
      f.close();
   }

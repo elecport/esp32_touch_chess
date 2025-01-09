@@ -79,7 +79,7 @@ static touch_chess::State_t _previousStateType = touch_chess::State_t::S_EMPTY;
 static touch_chess::CalibrateState _cal_state;
 
 // Main chess game state
-static touch_chess::ChessGame _chess_game_state;
+touch_chess::ChessGame _chess_game_state;
 
 // Game setup state object
 static touch_chess::GameSetup _game_setup_state(_chess_game_state);

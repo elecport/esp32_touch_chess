@@ -111,4 +111,8 @@ private:
   unsigned __lastTouched;
 };
 
+class ChessGame;
+
 } // namespace touch_chess
+
+extern touch_chess::ChessGame _chess_game_state;

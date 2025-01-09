@@ -8,6 +8,7 @@ For a copy, see LICENSE file.
 #include <SPIFFS.h>
 
 #include "tc_mainmenustate.hpp"
+#include "tc_gamestate.hpp"
 #include "Free_Fonts.h"
 
 #define SCROLL_STEP_X 1
@@ -56,9 +57,8 @@ void MainMenu::__loadGame()
   int slotIndex = this->_questionBox(title, slotNames, 4);
   if (slotIndex > 0) {
     char fname[] = "/save_";
-    fname[5] = slot+'1';
-    fs::File f = SPIFFS.open(fname, "r");
-    
+    fname[5] = slotIndex+'1';
+    _chess_game_state.loadGame(fname);
   }
 }
 
@@ -99,6 +99,7 @@ State_t MainMenu::step(unsigned current_time)
       return State_t::GAME_SETUP;
     } else if (y>LOAD_GAME_POS && y<LOAD_GAME_POS+BUTTON_HEIGHT) {
       this->__loadGame();
+      return State_t::CHESS_GAME;
     }
   }
   delay(200);
